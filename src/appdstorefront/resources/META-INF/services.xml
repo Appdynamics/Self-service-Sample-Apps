@@ -1,0 +1,17 @@
+<service name="StoreFrontService" scope="application" targetNamespace="http://appdstorefront/">
+  <description>
+    Sample StoreFront Service for AppDynamics Demo that will Get/Put/Delete products from a MySql Database
+  </description>
+
+  <parameter name="ServiceClass">
+    com.appdynamics.demo.StoreFront
+  </parameter>
+
+  <messageReceivers>
+    <messageReceiver mep="http://www.w3.org/2004/08/wsdl/in-only"
+                     class="org.apache.axis2.rpc.receivers.RPCInOnlyMessageReceiver"/>
+    <messageReceiver mep="http://www.w3.org/2004/08/wsdl/in-out"
+                     class="org.apache.axis2.rpc.receivers.RPCMessageReceiver"/>
+  </messageReceivers>
+  <schema schemaNamespace="http://appdstorefront/xsd"/>
+</service>
