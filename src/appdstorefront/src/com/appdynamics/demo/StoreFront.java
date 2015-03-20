@@ -10,20 +10,31 @@ import java.sql.SQLException;
 import java.lang.StringBuilder;
 
 public class StoreFront {
+  private Connection getConnection() throws Exception {
+    Class.forName("com.mysql.jdbc.Driver").newInstance();
+    Connection connection = DriverManager
+      .getConnection("jdbc:mysql://localhost:8889/AppDemo",
+        "demouser",
+        "demouser"
+      );
+    return connection;
+  }
+
   private PreparedStatement getStatement(String query) {
     try {
-      Class.forName("com.mysql.jdbc.Driver").newInstance();
-      Connection connection = DriverManager
-        .getConnection("jdbc:mysql://localhost:8889/AppDemo",
-          "demouser",
-          "demouser"
-        );
-      return connection.prepareStatement(query);
+      return getConnection().prepareStatement(query);
     } catch (Exception exception) {}
     return null;
   }
 
-  private String buildXmlFromResultSet(ResultSet resultSet) {
+  private PreparedStatement getStatement(String query, int option) {
+    try {
+      return getConnection().prepareStatement(query, option);
+    } catch (Exception exception) {}
+    return null;
+  }
+
+  private String buildJsonFromResultSet(ResultSet resultSet) {
     try {
       ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
       int columns = resultSetMetaData.getColumnCount();
@@ -39,8 +50,8 @@ public class StoreFront {
           if (column > 1) {
             stringBuilder.append(",");
           }
-          stringBuilder.append(columnName + ":");
-          stringBuilder.append("'" + resultSet.getObject(column) + "'");
+          stringBuilder.append("\"" + columnName + "\"" + ":");
+          stringBuilder.append("\"" + resultSet.getObject(column) + "\"");
         }
         stringBuilder.append("}");
       }
@@ -54,72 +65,83 @@ public class StoreFront {
   private ResultSet executeQuery(PreparedStatement preparedStatement) {
     try {
       return preparedStatement.executeQuery();
-    } catch (Exception exception) {}
+    } catch (Exception exception) {
+    }
     return null;
   }
 
   public String getAllProducts() {
-    return buildXmlFromResultSet(
+    return buildJsonFromResultSet(
       executeQuery(
         getStatement("SELECT * FROM products")
       )
     );
   }
+
   public String getProduct(int id) {
     PreparedStatement preparedStatement = null;
     try {
       preparedStatement = getStatement("SELECT * FROM products WHERE id = ?");
       preparedStatement.setInt(1, id);
-    } catch (Exception exception) {}
-    return buildXmlFromResultSet(
+    } catch (Exception exception) {
+    }
+    return buildJsonFromResultSet(
       executeQuery(
         preparedStatement
       )
     );
   }
-  public void addProduct(String name, String filename, int stock) {
+
+  public String addProduct(String name, String filename, int stock) {
     PreparedStatement preparedStatement = null;
     try {
-      preparedStatement = getStatement("INSERT INTO products (name, filename, stock) VALUES (?, ?, ?)");
+      preparedStatement = getStatement("INSERT INTO products (name, filename, stock) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
       preparedStatement.setString(1, name);
       preparedStatement.setString(2, filename);
       preparedStatement.setInt(3, stock);
-      preparedStatement.executeUpdate();
+      int affected = preparedStatement.executeUpdate();
+      if (affected > 0) {
+        ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+        if (generatedKeys.next()) {
+          return getProduct(generatedKeys.getInt(1));
+        }
+      }
     } catch (Exception exception) {}
+    return "[]";
   }
-  public void updateProduct(int id, String name, String filename) {
+
+  public String updateProduct(int id, String name, int stock, String filename) {
     PreparedStatement preparedStatement = null;
     try {
-      preparedStatement = getStatement("UPDATE products SET name = ?, filename = ? WHERE id = ?");
+      preparedStatement = getStatement("UPDATE products SET name = ?, stock = ?, filename = ? WHERE id = ?");
       preparedStatement.setString(1, name);
-      preparedStatement.setString(2, filename);
-      preparedStatement.setInt(3, id);
+      preparedStatement.setInt(2, stock);
+      preparedStatement.setString(3, filename);
+      preparedStatement.setInt(4, id);
       preparedStatement.executeUpdate();
-    } catch (Exception exception) {}
+    } catch (Exception exception) {
+    }
+    return getProduct(id);
   }
+
   public void deleteProduct(int id) {
     PreparedStatement preparedStatement = null;
     try {
       preparedStatement = getStatement("DELETE FROM products WHERE id = ?");
       preparedStatement.setInt(1, id);
       preparedStatement.executeUpdate();
-    } catch (Exception exception) {}
+    } catch (Exception exception) {
+    }
   }
-  public void consumeProduct(int id) {
+
+  public String consumeProduct(int id) {
     PreparedStatement preparedStatement = null;
     try {
-      preparedStatement = getStatement("UPDATE products SET stock = CASE WHEN stock - 1 < 0 THEN 0 ELSE stock - 1 END CASE WHERE id = ?");
+      preparedStatement = getStatement("UPDATE products SET stock = CASE WHEN stock - 1 < 0 THEN 0 ELSE stock - 1 END WHERE id = ?");
       preparedStatement.setInt(1, id);
       preparedStatement.executeUpdate();
-    } catch (Exception exception) {}
-  }
-  public void setProductStock(int id, int stock) {
-    PreparedStatement preparedStatement = null;
-    try {
-      preparedStatement = getStatement("UPDATE products SET stock = ? WHERE id = ?");
-      preparedStatement.setInt(1, stock);
-      preparedStatement.setInt(2, id);
-      preparedStatement.executeUpdate();
-    } catch (Exception exception) {}
+    } catch (Exception exception) {
+    }
+    return getProduct(id);
   }
 }

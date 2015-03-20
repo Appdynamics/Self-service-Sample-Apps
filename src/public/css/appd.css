@@ -2,3 +2,7 @@
     display: block;
     margin: 0 auto;
 }
+
+.jumbotron {
+    background-color: #999999;
+}

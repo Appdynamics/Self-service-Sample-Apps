@@ -1,15 +1,3 @@
-require("appdynamics").profile({
-  controllerHostName: "",
-  controllerPort: "",
-  accountName: "",
-  accountAccessKey: "",
-  controllerSslEnabled: "",
-  applicationName: "",
-  tierName: "NodeServer",
-  nodeName: "NodeServer01",
-  debug: true
-});
-
 var express = require('express');
 var server = express();
 var request = require('request');
@@ -25,24 +13,31 @@ function setupStoreFrontCall(nodePath, apiRequest) {
     for (var key in serverRequest.query) {
       if (serverRequest.query.hasOwnProperty(key)) {
         if (params != '') {
-          url += '&';
+            params += '&';
         }
-        url += key + '=' + serverRequest.query[key];
+          params += key + '=' + serverRequest.query[key];
       }
     }
-    request(url + '&t=' + (new Date()).getTime(), function(error, apiResponse, body) {
+    request(url + params + '&t=' + (new Date()).getTime(), function(error, apiResponse, body) {
       if (apiResponse && body) {
         xmlParser.parseString(body, function (err, result) {
-          response.send(result["ns:getAllProductsResponse"]["ns:return"][0]);
+          var responseKey = "ns:" + apiRequest + "Response";
+          var returnKey = "ns:return";
+          if (result.hasOwnProperty(responseKey) && result[responseKey].hasOwnProperty(returnKey)) {
+            response.send(result[responseKey][returnKey][0]);
+          } else {
+              response.send("[]");
+          }
         });
       } else {
-        response.send("{error: 'No Response'}");
+        response.send("[]");
       }
     });
   });
 }
 
-server.use(express.static(__dirname + '/public'));
+//server.use(express.static(__dirname + '/public'));
+server.use(express.static('/home/demo/Documents/Developrise/appdemo/src/public'));
 setupStoreFrontCall('retrieveAll', 'getAllProducts');
 setupStoreFrontCall('retrieve', 'getProduct');
 setupStoreFrontCall('add', 'addProduct');

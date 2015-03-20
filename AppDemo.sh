@@ -293,6 +293,19 @@ doNodeInstall() {
 
   echo "Verifying/Installing Node xml2js..."
   if ! npm list xml2js >/dev/null ; then npm install xml2js; else echo "Installed"; fi
+
+  echo "Verifying/Installing jQuery..."
+  if ! npm list jquery >/dev/null ; then npm install jquery@2.1.3; else echo "Installed"; fi
+
+  echo "Verifying/Installing Bootstrap..."
+  if ! npm list bootstrap >/dev/null ; then npm install bootstrap@3.3.4; else echo "Installed"; fi
+
+  echo "Verifying/Installing AngularJS..."
+  if ! npm list angular >/dev/null ; then npm install angular@1.3.14; else echo "Installed"; fi
+
+  echo "Verifying/Installing AngularRoute..."
+  if ! npm list angular-route >/dev/null ; then npm install angular-route@1.3.14; else echo "Installed"; fi
+
 }
 
 doMySqlInstall() {
@@ -379,13 +392,7 @@ stopMySql() {
 }
 
 runMySqlScripts() {
-  echo "CREATE DATABASE IF NOT EXISTS AppDemo;" > "$RUN_PATH/mysql/tmp_script"
-  "$RUN_PATH/mysql/bin/mysql" --socket="$RUN_PATH/mysql/data/mysql.sock" < "$RUN_PATH/mysql/tmp_script"
-  echo "GRANT ALL PRIVILEGES ON AppDemo.* TO demouser@localhost IDENTIFIED BY 'demouser'; FLUSH PRIVILEGES;" > "$RUN_PATH/mysql/tmp_script"
-  "$RUN_PATH/mysql/bin/mysql" --socket="$RUN_PATH/mysql/data/mysql.sock" < "$RUN_PATH/mysql/tmp_script"
-  echo "CREATE TABLE IF NOT EXISTS products (id int NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL UNIQUE, stock int NOT NULL DEFAULT 0, filename VARCHAR(255), PRIMARY KEY (id));" > "$RUN_PATH/mysql/tmp_script"
-  "$RUN_PATH/mysql/bin/mysql" --socket="$RUN_PATH/mysql/data/mysql.sock" AppDemo < "$RUN_PATH/mysql/tmp_script"
-  rm "$RUN_PATH/mysql/tmp_script"
+  "$RUN_PATH/mysql/bin/mysql" --socket="$RUN_PATH/mysql/data/mysql.sock" AppDemo < "$SCRIPT_PATH/src/mysql.sql"
 }
 
 startMachineAgent() {
@@ -400,28 +407,31 @@ startDatabaseAgent() {
 
 startNode() {
   mkdir -p "$RUN_PATH/node"; mkdir -p "$RUN_PATH/node/public"
-  if [ ! -f "$RUN_PATH/node/server.js" ]; then
-    cp "$SCRIPT_PATH/src/server.js" "$RUN_PATH/node/server.js"
-  fi
   if [ ! -f "$RUN_PATH/node/public/index.html" ]; then
     cp -r "$SCRIPT_PATH/src/public" "$RUN_PATH/node"
   fi
-  sed 's/controllerHostName:.*$/controllerHostName: \"'"$CONTROLLER_ADDRESS"'\",/' "$RUN_PATH/node/server.js" > "$RUN_PATH/node/server.js.new"
-  mv "$RUN_PATH/node/server.js.new" "$RUN_PATH/node/server.js"
-  sed 's/controllerPort:.*$/controllerPort: '"$CONTROLLER_PORT"',/' "$RUN_PATH/node/server.js" > "$RUN_PATH/node/server.js.new"
-  mv "$RUN_PATH/node/server.js.new" "$RUN_PATH/node/server.js"
-  sed 's/accountName:.*$/accountName: \"'"$ACCOUNT_NAME"'\",/' "$RUN_PATH/node/server.js" > "$RUN_PATH/node/server.js.new"
-  mv "$RUN_PATH/node/server.js.new" "$RUN_PATH/node/server.js"
-  sed 's/accountAccessKey:.*$/accountAccessKey: \"'"$ACCOUNT_ACCESS_KEY"'\",/' "$RUN_PATH/node/server.js" > "$RUN_PATH/node/server.js.new"
-  mv "$RUN_PATH/node/server.js.new" "$RUN_PATH/node/server.js"
-  sed 's/controllerSslEnabled:.*$/controllerSslEnabled: '"$SSL"',/' "$RUN_PATH/node/server.js" > "$RUN_PATH/node/server.js.new"
-  mv "$RUN_PATH/node/server.js.new" "$RUN_PATH/node/server.js"
-  sed 's/applicationName:.*$/applicationName: \"'"$APPLICATION_NAME"'\",/' "$RUN_PATH/node/server.js" > "$RUN_PATH/node/server.js.new"
-  mv "$RUN_PATH/node/server.js.new" "$RUN_PATH/node/server.js"
-  sed 's/var node =.*$/var node = '"$NODE_PORT"';/' "$RUN_PATH/node/server.js" > "$RUN_PATH/node/server.js.new"
-  mv "$RUN_PATH/node/server.js.new" "$RUN_PATH/node/server.js"
-  sed 's/var axis =.*$/var axis = '"$AXIS_PORT"';/' "$RUN_PATH/node/server.js" > "$RUN_PATH/node/server.js.new"
-  mv "$RUN_PATH/node/server.js.new" "$RUN_PATH/node/server.js"
+  printf "
+require(\"appdynamics\").profile({
+    controllerHostName: \"%s\",
+    controllerPort: %s,
+    accountName: \"%s\",
+    accountAccessKey: \"%s\",
+    controllerSslEnabled: %s,
+    applicationName: \"%s\",
+    tierName: \"NodeServer\",
+    nodeName: \"NodeServer01\",
+    debug: true
+});
+  " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
+  cat "$SCRIPT_PATH/src/server.js" >> "$RUN_PATH/node/server.js"
+  ln -sf "$RUN_PATH/node_modules/angular/angular.min.js" "$RUN_PATH/node/public/js/angular.min.js"
+  ln -sf "$RUN_PATH/node_modules/angular/angular.min.js" "$SCRIPT_PATH/src/public/js/angular.min.js"
+  ln -sf "$RUN_PATH/node_modules/angular/angular.min.js.map" "$SCRIPT_PATH/src/public/js/angular.min.js.map"
+  ln -sf "$RUN_PATH/node_modules/angular-route/angular-route.min.js" "$SCRIPT_PATH/src/public/js/angular-route.min.js"
+  ln -sf "$RUN_PATH/node_modules/angular-route/angular-route.min.js.map" "$SCRIPT_PATH/src/public/js/angular-route.min.js.map"
+  ln -sf "$RUN_PATH/node_modules/bootstrap/dist" "$SCRIPT_PATH/src/public/bootstrap"
+  ln -sf "$RUN_PATH/node_modules/jquery/dist/jquery.min.js" "$SCRIPT_PATH/src/public/js/jquery.min.js"
+  ln -sf "$RUN_PATH/node_modules/jquery/dist/jquery.min.map" "$SCRIPT_PATH/src/public/js/jquery.min.map"
   startProcess "Node (Port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "Node Server Failed"
 }
 
@@ -438,13 +448,6 @@ startAxis() {
   mv "$AXIS2_HOME/conf/axis2-new.xml" "$AXIS2_HOME/conf/axis2.xml"
   sed 's/^java \$JAVA_OPTS/'$(escaper "$JAVA_HOME/bin/java")' \$JAVA_OPTS/' "$AXIS2_HOME/bin/axis2server.sh" > tmp && mv tmp "$AXIS2_HOME/bin/axis2server.sh"
   startProcess "Axis Server (Port $AXIS_PORT)" "sh $AXIS2_HOME/bin/axis2server.sh" "[INFO] [SimpleAxisServer] Started" "[SimpleAxisServer] Failed"
-}
-
-setupStockService() {
-  echo "Verifying Stock Service is ready..."
-  if [ ! -f "$AXIS2_HOME/repository/services/StockQuoteService.aar" ]; then
-    cd "$AXIS2_HOME/samples/quickstartadb";"$ANT_HOME/bin/ant" generate.service; cd "$RUN_PATH"
-  fi
 }
 
 setupStoreFront() {
@@ -483,10 +486,9 @@ startMySql
 runMySqlScripts
 startMachineAgent
 startDatabaseAgent
-startNode
 startAxis
-setupStockService
 setupStoreFront
+startNode
 
 echo "Sample App Environment Setup Complete!"
 echo "Visit http://localhost:$NODE_PORT to view the sample app, or"

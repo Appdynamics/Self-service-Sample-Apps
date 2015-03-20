@@ -1,0 +1,25 @@
+
+<!-- Jumbotron Header -->
+<header class="jumbotron hero-spacer">
+    <img class='center' src='http://www.appdynamics.com/static/img/logo.png' alt='AppDynamics' title='AppDynamics'>
+</header>
+
+<hr>
+
+<!-- Title -->
+<div class="row">
+    <div class="col-lg-12">
+        <h3>Available Products</h3>
+    </div>
+</div>
+<!-- /.row -->
+
+<!-- Page Features -->
+<div class="row text-center">
+
+    <div data-ng-repeat="product in products">
+        <ad-product product="product" consume-product="consumeProduct">
+        </ad-product>
+    </div>
+
+</div>
