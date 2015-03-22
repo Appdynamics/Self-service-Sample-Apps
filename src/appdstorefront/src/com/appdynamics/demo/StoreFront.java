@@ -1,5 +1,7 @@
 package com.appdynamics.demo;
 
+import org.newsclub.net.mysql.AFUNIXDatabaseSocketFactory;
+
 import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.ResultSet;
@@ -8,15 +10,19 @@ import java.sql.PreparedStatement;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.lang.StringBuilder;
+import java.util.Properties;
 
 public class StoreFront {
   private Connection getConnection() throws Exception {
     Class.forName("com.mysql.jdbc.Driver").newInstance();
+
+    Properties properties = new Properties();
+    properties.put("user", "demouser");
+    properties.put("password", "demouser");
+    properties.put("socketFactory", AFUNIXDatabaseSocketFactory.class.getName());
+    properties.put("junixsocket.file", "/var/tmp/AppDynamics/mysql/data/mysql.sock");
     Connection connection = DriverManager
-      .getConnection("jdbc:mysql://localhost:8889/AppDemo",
-        "demouser",
-        "demouser"
-      );
+      .getConnection("jdbc:mysql://localhost/AppDemo", properties);
     return connection;
   }
 

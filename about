@@ -3,8 +3,8 @@ This script will setup a sample application envionment to show how AppDynamics w
 * This following will be installed and setup for the demo environment:
   - Apache Axis
   - Apache Ant
-  - NodeJS (with Expression, Request, and xml2js)
-  - MySql
+  - NodeJS (with Express, Request, xml2js, jquery, Bootstrap, and Angular)
+  - MySql (with junixsocket and mysqlconnector)
   - Java JDK
   - AppDynamics Machine Agent
   - AppDynamics Database Agent

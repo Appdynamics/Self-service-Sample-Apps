@@ -336,10 +336,24 @@ doJavaInstall() {
   rm "$RUN_PATH/java.tar.gz"
 }
 
+doJunixsocketInstall() {
+  echo "Verifying/Installing Junixsocket..."
+  if [ -f "$AXIS2_HOME/lib/junixsocket-1.3.jar" ]; then echo "Installed"; return 0; fi
+  verifyUserAgreement "The Junixsocket jar needs to be downloaded, do you wish to continue?"
+  wget --no-check-certificate "https://junixsocket.googlecode.com/files/junixsocket-1.3-bin.tar.bz2" -O "$RUN_PATH/junixsocket.tar.bz2"
+  echo "Unpacking Juixsocket..."
+  tar xjvf "$RUN_PATH/junixsocket.tar.bz2" > /dev/null
+  mv "$RUN_PATH/junixsocket-1.3/dist/junixsocket-1.3.jar" "$AXIS2_HOME/lib/junixsocket-1.3.jar"
+  mv "$RUN_PATH/junixsocket-1.3/dist/junixsocket-mysql-1.3.jar" "$AXIS2_HOME/lib/junixsocket-mysql-1.3.jar"
+  mv "$RUN_PATH/junixsocket-1.3/lib-native/"* "$AXIS2_HOME/lib/"
+  rm "$RUN_PATH/junixsocket.tar.bz2"
+  rm -rf "$RUN_PATH/junixsocket-1.3"
+}
+
 doMySqlConnectorInstall() {
   echo "Verifying/Installing MySql Connector..."
   if [ -f "$AXIS2_HOME/lib/mysql-connector-java-5.0.8-bin.jar" ]; then echo "Installed"; return 0; fi
-  verifyUserAgreement "The MySql Connector JDBC driver needs to be downloaded, do you wish to continue?"
+  verifyUserAgreement "The MySql Connector JDBC jar needs to be downloaded, do you wish to continue?"
   local DLOAD_FILE="mysql-connector-java-5.0.8.tar.gz"
   wget "http://dev.mysql.com/get/Downloads/Connector-J/$DLOAD_FILE" -O "$RUN_PATH/mysql-connector.tar.gz"
   echo "Unpacking MySql Connector..."
@@ -437,7 +451,7 @@ startAxis() {
   writeControllerInfo "$RUN_PATH/AppServerAgent/conf/controller-info.xml" "JavaServer" "JavaServer01"
   writeControllerInfo "$RUN_PATH/AppServerAgent/ver$APPSERVER_AGENT_VERSION/conf/controller-info.xml" "JavaServer" "JavaServer01"
   awk '!/javaagent.jar/' "$AXIS2_HOME/bin/axis2server.sh" > tmp && mv tmp "$AXIS2_HOME/bin/axis2server.sh"
-  awk -v path="$RUN_PATH/AppServerAgent" -v controller="$CONTROLLER_ADDRESS" -v port="$CONTROLLER_PORT" -v ssl="$SSL" -v name="$ACCOUNT_NAME" -v key="$ACCOUNT_ACCESS_KEY" -v app="$APPLICATION_NAME" '/JAVA_OPTS/ && !f {print $0 "\nJAVA_OPTS=\"$JAVA_OPTS -javaagent:"path"/javaagent.jar -Dappdynamics.controller.hostName="controller" -Dappdynamics.controller.port="port" -Dappdynamics.controller.ssl.enabled="ssl" -Dappdynamics.agent.accountName="name" -Dappdynamics.agent.accountAccessKey="key" -Dappdynamics.agent.applicationName="app" -Dappdynamics.agent.tierName=JavaServer -Dappdynamics.agent.nodeName=JavaServer01\"";f=1;next}1' "$AXIS2_HOME/bin/axis2server.sh" > tmp && mv tmp "$AXIS2_HOME/bin/axis2server.sh"
+  awk -v path="$RUN_PATH/AppServerAgent" -v controller="$CONTROLLER_ADDRESS" -v port="$CONTROLLER_PORT" -v ssl="$SSL" -v name="$ACCOUNT_NAME" -v key="$ACCOUNT_ACCESS_KEY" -v app="$APPLICATION_NAME" -v libpath="$AXIS2_HOME/lib" '/JAVA_OPTS/ && !f {print $0 "\nJAVA_OPTS=\"$JAVA_OPTS -javaagent:"path"/javaagent.jar -Dappdynamics.controller.hostName="controller" -Dappdynamics.controller.port="port" -Dappdynamics.controller.ssl.enabled="ssl" -Dappdynamics.agent.accountName="name" -Dappdynamics.agent.accountAccessKey="key" -Dappdynamics.agent.applicationName="app" -Dappdynamics.agent.tierName=JavaServer -Dappdynamics.agent.nodeName=JavaServer01 -Djava.library.path="libpath"\"";f=1;next}1' "$AXIS2_HOME/bin/axis2server.sh" > tmp && mv tmp "$AXIS2_HOME/bin/axis2server.sh"
   sed 's/<parameter name=\"port\">[^\<]*<\/parameter>/<parameter name=\"port\">'"$AXIS_PORT"'<\/parameter>/' "$AXIS2_HOME/conf/axis2.xml" > "$AXIS2_HOME/conf/axis2-new.xml"
   mv "$AXIS2_HOME/conf/axis2-new.xml" "$AXIS2_HOME/conf/axis2.xml"
   sed 's/^java \$JAVA_OPTS/'$(escaper "$JAVA_HOME/bin/java")' \$JAVA_OPTS/' "$AXIS2_HOME/bin/axis2server.sh" > tmp && mv tmp "$AXIS2_HOME/bin/axis2server.sh"
@@ -471,6 +485,7 @@ doDependencyInstalls
 doJavaInstall
 doAxisInstall
 doMySqlInstall
+doJunixsocketInstall
 doMySqlConnectorInstall
 doAntInstall
 doNodeInstall
