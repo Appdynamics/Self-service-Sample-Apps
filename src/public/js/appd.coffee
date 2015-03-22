@@ -38,11 +38,16 @@ app.config [
 ]
 
 app.controller 'StoreFrontController', [
-  '$scope', '$http'
-  ($scope, $http) ->
+  '$scope', '$http', '$rootScope'
+  ($scope, $http, $rootScope) ->
+    $scope.initialLoad = true
+
     $http.get '/retrieveAll'
       .success (data) ->
+        $scope.initialLoad = false
         $scope.products = data
+      .error ->
+        alert 'Unable to retrieve product information!'
 
     $scope.consumeProduct = (product, $event) ->
       product.loading = true
@@ -56,16 +61,92 @@ app.controller 'StoreFrontController', [
       .error ->
         alert 'Unable to purchase product!'
         product.loading = false
+
+    if not $rootScope.exceptions?
+      $rootScope.exceptions = 0
+
+    $scope.raising = false
+    $scope.getExceptions = ->
+      $rootScope.exceptions
+    $scope.raiseException = ->
+      $scope.raising = true
+      $http.get '/exception',
+        method: 'GET'
+      .success (data) ->
+        $rootScope.exceptions++
+        $scope.raising = false
+      .error ->
+        $scope.raising = false
+
 ]
 
 app.controller 'AdminController', [
   '$scope', '$http'
   ($scope, $http) ->
-    $scope.addProduct = ->
+    $scope.products = []
+
+    setupProductUpdate = (product) ->
+      product.loading = false
+      product.stock = parseInt product.stock, 10
+      product.save = ->
+        if product.name == "" or not angular.isNumber product.stock
+          return
+        $http.get '/update',
+          method: 'GET'
+          params:
+            id: product.id
+            name: product.name
+            stock: product.stock
+        .success ->
+          product.lodaing = false
+        .error ->
+          alert 'Unable to update the product!'
+          product.loading = false
+      product.delete = ->
+        $http.get '/delete',
+          method: 'GET'
+          params:
+            id: product.id
+        .success ->
+          product.loading = false
+          for lookup of $scope.products
+            if not $scope.products.hasOwnProperty lookup then continue
+            if $scope.products[lookup].id == product.id
+              $scope.products.splice lookup, 1
+              break
+        .error ->
+          alert 'Unable to delete the product!'
+          product.loading = false
+      $scope.products.push product
 
     $http.get '/retrieveAll'
       .success (data) ->
-        $scope.products = data
+        for product of data
+          if not data.hasOwnProperty product then continue
+          setupProductUpdate data[product]
+
+    $scope.newName = ""
+    $scope.newStock = 0
+
+    $scope.loadingNew = false
+    $scope.addNew = ->
+      if $scope.newName == "" or not angular.isNumber $scope.newStock
+        return
+      $scope.loadingNew = true
+      $http.get '/add',
+        method: 'GET'
+        params:
+          name: $scope.newName
+          stock: $scope.newStock
+      .success (data) ->
+        $scope.loadingNew = false
+        $scope.newName = ""
+        $scope.newStock = 0
+        setupProductUpdate data[0]
+      .error ->
+        alert 'Unable to add new product!'
+        $scope.loadingNew = false
+
 ]
 
 app.directive 'adLoader', [

@@ -1,0 +1,4 @@
+.idea
+src/public/bootstrap*
+src/public/jquery*
+src/public/angular*

@@ -2,6 +2,7 @@ var express = require('express');
 var server = express();
 var request = require('request');
 var xml2js = require('xml2js');
+var domain = require('domain').create();
 var xmlParser = new xml2js.Parser();
 var node = 8888;
 var axis = 8887;
@@ -36,15 +37,22 @@ function setupStoreFrontCall(nodePath, apiRequest) {
   });
 }
 
-//server.use(express.static(__dirname + '/public'));
-server.use(express.static('/home/demo/Documents/Developrise/appdemo/src/public'));
+server.use(express.static(__dirname + '/public'));
 setupStoreFrontCall('retrieveAll', 'getAllProducts');
 setupStoreFrontCall('retrieve', 'getProduct');
 setupStoreFrontCall('add', 'addProduct');
 setupStoreFrontCall('update', 'updateProduct');
 setupStoreFrontCall('delete', 'deleteProduct');
 setupStoreFrontCall('consume', 'consumeProduct');
-setupStoreFrontCall('restock', 'setProductStock');
+
+domain.on('error', function(err) {});
+
+server.get('/exception', function(serverRequest, response) {
+    domain.run(function() {
+        throw new Error('User triggered exception!');
+    })
+    response.send("[]");
+});
 
 server.listen(node, 'localhost', function () {
   console.log('Node Server Started');

@@ -182,7 +182,7 @@ startProcess() {
     tail -n 1 -f "$RUN_LOG" | grep -m 1 "$(escaper "$LOG_SUCCESS_TEXT")\|$(escaper "$LOG_FAILURE_TEXT")" | { cat; echo >> "$RUN_LOG"; } > "$RUN_PATH/status" &
     STARTUP=$!
   else NOWAIT=true; fi;
-  ${PROCESS_COMMAND} >> "$RUN_LOG" &
+  ${PROCESS_COMMAND} >> "$RUN_LOG" 2>&1 &
   if [ "$NOWAIT" = false ]; then
     wait "$STARTUP"
     if [ "$(head -n 1 "$RUN_PATH/status")" != "$LOG_SUCCESS_TEXT" ]; then
@@ -406,10 +406,7 @@ startDatabaseAgent() {
 }
 
 startNode() {
-  mkdir -p "$RUN_PATH/node"; mkdir -p "$RUN_PATH/node/public"
-  if [ ! -f "$RUN_PATH/node/public/index.html" ]; then
-    cp -r "$SCRIPT_PATH/src/public" "$RUN_PATH/node"
-  fi
+  mkdir -p "$RUN_PATH/node"
   printf "
 require(\"appdynamics\").profile({
     controllerHostName: \"%s\",
@@ -424,14 +421,11 @@ require(\"appdynamics\").profile({
 });
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
   cat "$SCRIPT_PATH/src/server.js" >> "$RUN_PATH/node/server.js"
-  ln -sf "$RUN_PATH/node_modules/angular/angular.min.js" "$RUN_PATH/node/public/js/angular.min.js"
-  ln -sf "$RUN_PATH/node_modules/angular/angular.min.js" "$SCRIPT_PATH/src/public/js/angular.min.js"
-  ln -sf "$RUN_PATH/node_modules/angular/angular.min.js.map" "$SCRIPT_PATH/src/public/js/angular.min.js.map"
-  ln -sf "$RUN_PATH/node_modules/angular-route/angular-route.min.js" "$SCRIPT_PATH/src/public/js/angular-route.min.js"
-  ln -sf "$RUN_PATH/node_modules/angular-route/angular-route.min.js.map" "$SCRIPT_PATH/src/public/js/angular-route.min.js.map"
-  ln -sf "$RUN_PATH/node_modules/bootstrap/dist" "$SCRIPT_PATH/src/public/bootstrap"
-  ln -sf "$RUN_PATH/node_modules/jquery/dist/jquery.min.js" "$SCRIPT_PATH/src/public/js/jquery.min.js"
-  ln -sf "$RUN_PATH/node_modules/jquery/dist/jquery.min.map" "$SCRIPT_PATH/src/public/js/jquery.min.map"
+  ln -sf "$RUN_PATH/node_modules/angular/" "$SCRIPT_PATH/src/public/angular"
+  ln -sf "$RUN_PATH/node_modules/angular-route/" "$SCRIPT_PATH/src/public/angular-route"
+  ln -sf "$RUN_PATH/node_modules/bootstrap/dist/" "$SCRIPT_PATH/src/public/bootstrap"
+  ln -sf "$RUN_PATH/node_modules/jquery/dist/" "$SCRIPT_PATH/src/public/jquery"
+  if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_PATH/src/public/" "$RUN_PATH/node/public"; fi
   startProcess "Node (Port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "Node Server Failed"
 }
 

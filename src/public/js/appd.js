@@ -53,11 +53,15 @@
   ]);
 
   app.controller('StoreFrontController', [
-    '$scope', '$http', function($scope, $http) {
+    '$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
+      $scope.initialLoad = true;
       $http.get('/retrieveAll').success(function(data) {
+        $scope.initialLoad = false;
         return $scope.products = data;
+      }).error(function() {
+        return alert('Unable to retrieve product information!');
       });
-      return $scope.consumeProduct = function(product, $event) {
+      $scope.consumeProduct = function(product, $event) {
         product.loading = true;
         return $http.get('/consume', {
           method: 'GET',
@@ -72,15 +76,116 @@
           return product.loading = false;
         });
       };
+      if ($rootScope.exceptions == null) {
+        $rootScope.exceptions = 0;
+      }
+      $scope.raising = false;
+      $scope.getExceptions = function() {
+        return $rootScope.exceptions;
+      };
+      return $scope.raiseException = function() {
+        $scope.raising = true;
+        return $http.get('/exception', {
+          method: 'GET'
+        }).success(function(data) {
+          $rootScope.exceptions++;
+          return $scope.raising = false;
+        }).error(function() {
+          return $scope.raising = false;
+        });
+      };
     }
   ]);
 
   app.controller('AdminController', [
     '$scope', '$http', function($scope, $http) {
-      $scope.addProduct = function() {};
-      return $http.get('/retrieveAll').success(function(data) {
-        return $scope.products = data;
+      var setupProductUpdate;
+      $scope.products = [];
+      setupProductUpdate = function(product) {
+        product.loading = false;
+        product.stock = parseInt(product.stock, 10);
+        product.save = function() {
+          if (product.name === "" || !angular.isNumber(product.stock)) {
+            return;
+          }
+          return $http.get('/update', {
+            method: 'GET',
+            params: {
+              id: product.id,
+              name: product.name,
+              stock: product.stock
+            }
+          }).success(function() {
+            return product.lodaing = false;
+          }).error(function() {
+            alert('Unable to update the product!');
+            return product.loading = false;
+          });
+        };
+        product["delete"] = function() {
+          return $http.get('/delete', {
+            method: 'GET',
+            params: {
+              id: product.id
+            }
+          }).success(function() {
+            var lookup, results;
+            product.loading = false;
+            results = [];
+            for (lookup in $scope.products) {
+              if (!$scope.products.hasOwnProperty(lookup)) {
+                continue;
+              }
+              if ($scope.products[lookup].id === product.id) {
+                $scope.products.splice(lookup, 1);
+                break;
+              } else {
+                results.push(void 0);
+              }
+            }
+            return results;
+          }).error(function() {
+            alert('Unable to delete the product!');
+            return product.loading = false;
+          });
+        };
+        return $scope.products.push(product);
+      };
+      $http.get('/retrieveAll').success(function(data) {
+        var product, results;
+        results = [];
+        for (product in data) {
+          if (!data.hasOwnProperty(product)) {
+            continue;
+          }
+          results.push(setupProductUpdate(data[product]));
+        }
+        return results;
       });
+      $scope.newName = "";
+      $scope.newStock = 0;
+      $scope.loadingNew = false;
+      return $scope.addNew = function() {
+        if ($scope.newName === "" || !angular.isNumber($scope.newStock)) {
+          return;
+        }
+        $scope.loadingNew = true;
+        return $http.get('/add', {
+          method: 'GET',
+          params: {
+            name: $scope.newName,
+            stock: $scope.newStock
+          }
+        }).success(function(data) {
+          $scope.loadingNew = false;
+          $scope.newName = "";
+          $scope.newStock = 0;
+          return setupProductUpdate(data[0]);
+        }).error(function() {
+          alert('Unable to add new product!');
+          return $scope.loadingNew = false;
+        });
+      };
     }
   ]);
 

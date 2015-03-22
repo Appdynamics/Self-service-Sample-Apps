@@ -22,4 +22,25 @@
         </ad-product>
     </div>
 
+    <div class="alert alert-info" ng-show="!products.length && !initialLoad">There is no product available!</div>
+
+    <div ng-show="initialLoad"><h4><ad-loader></ad-loader></h4></div>
+
+</div>
+
+<hr />
+
+<div class="row">
+    <div class="col-lg-12">
+        <h3>Additional Operations</h3>
+    </div>
+</div>
+
+<div class="row">
+    <ul>
+        <li>
+            <button type="button" class="btn btn-danger btn-sm" ng-click="raiseException()" ng-disabled="raising">Raise Exception</button>
+            (<span>Number of Exceptions Raised This Session: <strong>{{getExceptions()}}</strong></span>)
+        </li>
+    </ul>
 </div>

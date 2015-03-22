@@ -6,3 +6,7 @@
 .jumbotron {
     background-color: #999999;
 }
+
+.caption h3 {
+    text-decoration: underline;
+}

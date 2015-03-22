@@ -1,4 +1,6 @@
-<table class="table table-bordered table-condensed">
+<h3>Product Management</h3>
+
+<table class="table table-condensed table-striped">
     <thead>
         <tr>
             <th>
@@ -21,14 +23,35 @@
                 {{product.id}}
             </td>
             <td>
-                <input type="text" name="name" ng-value="product.name" />
+                <input type="text" ng-model="product.name" />
             </td>
             <td>
-                <input type="text" name="name" ng-value="product.stock" />
+                <input type="number" ng-model="product.stock" />
             </td>
             <td>
-
+                <button type="button" ng-click="product.save()" ng-disabled="product.loading" class="btn btn-sm btn-primary" alt="Save">
+                    <span class="glyphicon glyphicon-floppy-save"></span>
+                </button>
+                <button type="button" ng-click="product.delete()" ng-disabled="product.loading" class="btn btn-sm btn-danger" alt="Delete">
+                    <span class="glyphicon glyphicon-trash"></span>
+                </button>
             </td>
         </tr>
     </tbody>
+    <tfoot>
+        <tr class="alert-info">
+            <td>
+                New
+            </td>
+            <td>
+                <input type="text" ng-model="newName" />
+            </td>
+            <td>
+                <input type="number" ng-model="newStock" />
+            </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-primary" ng-click="addNew()" ng-disable="loadingNew"><span class="glyphicon glyphicon-plus-sign"></span></button>
+            </td>
+        </tr>
+    </tfoot>
 </table>
