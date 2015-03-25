@@ -406,7 +406,7 @@ stopMySql() {
 }
 
 runMySqlScripts() {
-  "$RUN_PATH/mysql/bin/mysql" --socket="$RUN_PATH/mysql/data/mysql.sock" AppDemo < "$SCRIPT_PATH/src/mysql.sql"
+  "$RUN_PATH/mysql/bin/mysql" --socket="$RUN_PATH/mysql/data/mysql.sock" < "$SCRIPT_PATH/src/mysql.sql"
 }
 
 startMachineAgent() {
@@ -495,8 +495,8 @@ startMySql
 runMySqlScripts
 startMachineAgent
 startDatabaseAgent
-startAxis
 setupStoreFront
+startAxis
 startNode
 
 echo "Sample App Environment Setup Complete!"

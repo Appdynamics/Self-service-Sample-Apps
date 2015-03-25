@@ -98,13 +98,12 @@ public class StoreFront {
     );
   }
 
-  public String addProduct(String name, String filename, int stock) {
+  public String addProduct(String name, int stock) {
     PreparedStatement preparedStatement = null;
     try {
-      preparedStatement = getStatement("INSERT INTO products (name, filename, stock) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+      preparedStatement = getStatement("INSERT INTO products (name,  stock) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS);
       preparedStatement.setString(1, name);
-      preparedStatement.setString(2, filename);
-      preparedStatement.setInt(3, stock);
+      preparedStatement.setInt(2, stock);
       int affected = preparedStatement.executeUpdate();
       if (affected > 0) {
         ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
@@ -116,14 +115,13 @@ public class StoreFront {
     return "[]";
   }
 
-  public String updateProduct(int id, String name, int stock, String filename) {
+  public String updateProduct(int id, String name, int stock) {
     PreparedStatement preparedStatement = null;
     try {
-      preparedStatement = getStatement("UPDATE products SET name = ?, stock = ?, filename = ? WHERE id = ?");
+      preparedStatement = getStatement("UPDATE products SET name = ?, stock = ? WHERE id = ?");
       preparedStatement.setString(1, name);
       preparedStatement.setInt(2, stock);
-      preparedStatement.setString(3, filename);
-      preparedStatement.setInt(4, id);
+      preparedStatement.setInt(3, id);
       preparedStatement.executeUpdate();
     } catch (Exception exception) {
     }

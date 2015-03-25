@@ -9,17 +9,17 @@ var axis = 8887;
 
 function setupStoreFrontCall(nodePath, apiRequest) {
   server.get('/' + nodePath, function(serverRequest, response) {
-    var url = 'http://localhost:' + axis + '/axis2/services/StoreFrontService/' + apiRequest + '?';
-    var params = '';
+    var url = 'http://localhost:' + axis + '/axis2/services/StoreFront/' + apiRequest;
+    var form = {};
     for (var key in serverRequest.query) {
       if (serverRequest.query.hasOwnProperty(key)) {
-        if (params != '') {
-            params += '&';
-        }
-          params += key + '=' + serverRequest.query[key];
+        form[key] = serverRequest.query[key];
       }
     }
-    request(url + params + '&t=' + (new Date()).getTime(), function(error, apiResponse, body) {
+    request.post({
+      url: url,
+      form: form
+    }, function(error, apiResponse, body) {
       if (apiResponse && body) {
         xmlParser.parseString(body, function (err, result) {
           var responseKey = "ns:" + apiRequest + "Response";
@@ -50,7 +50,7 @@ domain.on('error', function(err) {});
 server.get('/exception', function(serverRequest, response) {
     domain.run(function() {
         throw new Error('User triggered exception!');
-    })
+    });
     response.send("[]");
 });
 

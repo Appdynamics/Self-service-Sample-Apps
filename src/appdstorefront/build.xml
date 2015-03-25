@@ -24,14 +24,22 @@
         </javac>
     </target>
 
-    <target name="generate.wsdl" depends="compile.service">
+    <target name="generate.copy" depends="compile.service">
+        <copy toDir="${build.dir}/classes" failonerror="false">
+            <fileset dir="${basedir}/resources">
+                <include name="**/*.xml"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="generate.wsdl" depends="generate.copy">
         <taskdef name="java2wsdl"
                  classname="org.apache.ws.java2wsdl.Java2WSDLTask"
                  classpathref="axis2.classpath"/>
         <java2wsdl className="com.appdynamics.demo.StoreFront"
-                   outputLocation="${build.dir}"
-                   targetNamespace="http://appdstorefront/"
-                   schemaTargetNamespace="http://appdstorefront/xsd">
+                   outputLocation="${build.dir}/classes/META-INF"
+                   outputFileName="service.wsdl"
+                   wsdlVersion="2.0">
             <classpath>
                 <pathelement path="${axis2.classpath}"/>
                 <pathelement location="${build.dir}/classes"/>
@@ -39,13 +47,14 @@
         </java2wsdl>
     </target>
 
-    <target name="generate.service" depends="compile.service">
-        <!--aar them up -->
-        <copy toDir="${build.dir}/classes" failonerror="false">
-            <fileset dir="${basedir}/resources">
-                <include name="**/*.xml"/>
-            </fileset>
-        </copy>
+    <target name="update.wsdl" depends="generate.wsdl">
+        <replace dir="${build.dir}/classes/META-INF" value='whttp:methodDefault="GET"'>
+            <include name="**/StoreFront.wsdl" />
+            <replacetoken><![CDATA[whttp:methodDefault="POST"]]></replacetoken>
+        </replace>
+    </target>
+
+    <target name="generate.service" depends="update.wsdl">
         <jar destfile="${build.dir}/StoreFront.aar">
             <fileset excludes="**/Test.class" dir="${build.dir}/classes"/>
         </jar>
