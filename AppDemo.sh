@@ -27,7 +27,6 @@ RUN_PATH="/var/tmp/AppDynamics"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
 NOW=$(date +"%s")
 RUN_LOG="$RUN_PATH/log/$NOW.log"
-export JAVA_HOME="$RUN_PATH/java"
 export NVM_DIR="$RUN_PATH/.nvm"
 AXIS_DIR="axis2-$AXIS_VERSION"
 export AXIS2_HOME="$RUN_PATH/$AXIS_DIR"
@@ -263,10 +262,6 @@ doAxisInstall() {
   apacheInstall "Axis" "$AXIS_DIR" "bin/axis2server.sh" "axis/axis2/java/core/$AXIS_VERSION" "http://mirror.reverse.net/pub/apache"
 }
 
-doAntInstall() {
-  apacheInstall "Ant" "$ANT_DIR" "bin/ant" "ant/binaries" "http://apache.claz.org"
-}
-
 setupNodeNvm() {
   [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 }
@@ -323,31 +318,20 @@ doMySqlInstall() {
 
 doJavaInstall() {
   echo "Verifying/Installing Java..."
-  if [ -f "$RUN_PATH/java/bin/java" ]; then echo "Installed"; return 0; fi
-  verifyUserAgreement "Java JDK is needed to continue.
+  if [ -f "$JAVA_HOME/bin/java" ]; then echo "Installed"; return 0; fi
+  echo "Cannot find java in the JAVA_HOME environment variable, checking local install."
+  if [ -f "$RUN_PATH/java/bin/java" ]; then echo "Installed"; export JAVA_HOME="$RUN_PATH/java"; return 0; fi
+  verifyUserAgreement "Java is needed to continue.
     You must accept the Oracle Binary Code License Agreement for Java SE (http://www.oracle.com/technetwork/java/javase/terms/license/index.html) to download the JDK binaries.
-    Do you accept the license agreement and wish to download the Java JDK?"
-  local DLOAD_FILE="jdk-7u75-linux-i586.tar.gz"
-  if [ "$ARCH" = "x86_64" ]; then DLOAD_FILE="jdk-7u75-linux-x64.tar.gz"; fi
+    Do you accept the license agreement and wish to download the Java Binaries?"
+  local DLOAD_FILE="jre-7u75-linux-i586.tar.gz"
+  if [ "$ARCH" = "x86_64" ]; then DLOAD_FILE="jre-7u75-linux-x64.tar.gz"; fi
   wget --no-check-certificate -c --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/7u75-b13/$DLOAD_FILE" -O "$RUN_PATH/java.tar.gz"
   echo "Unpacking Java (this process may take a few minutes)..."
   gunzip -c "$RUN_PATH/java.tar.gz" | tar xopf -
   mv "$RUN_PATH/jdk"* "$RUN_PATH/java"
   rm "$RUN_PATH/java.tar.gz"
-}
-
-doJunixsocketInstall() {
-  echo "Verifying/Installing Junixsocket..."
-  if [ -f "$AXIS2_HOME/lib/junixsocket-1.3.jar" ]; then echo "Installed"; return 0; fi
-  verifyUserAgreement "The Junixsocket jar needs to be downloaded, do you wish to continue?"
-  wget --no-check-certificate "https://junixsocket.googlecode.com/files/junixsocket-1.3-bin.tar.bz2" -O "$RUN_PATH/junixsocket.tar.bz2"
-  echo "Unpacking Juixsocket..."
-  tar xjvf "$RUN_PATH/junixsocket.tar.bz2" > /dev/null
-  mv "$RUN_PATH/junixsocket-1.3/dist/junixsocket-1.3.jar" "$AXIS2_HOME/lib/junixsocket-1.3.jar"
-  mv "$RUN_PATH/junixsocket-1.3/dist/junixsocket-mysql-1.3.jar" "$AXIS2_HOME/lib/junixsocket-mysql-1.3.jar"
-  mv "$RUN_PATH/junixsocket-1.3/lib-native/"* "$AXIS2_HOME/lib/"
-  rm "$RUN_PATH/junixsocket.tar.bz2"
-  rm -rf "$RUN_PATH/junixsocket-1.3"
+  export JAVA_HOME="$RUN_PATH/java"
 }
 
 doMySqlConnectorInstall() {
@@ -384,6 +368,7 @@ startMySql() {
   if ! wait_for_pid created "$!" "$RUN_PATH/mysql/data/mysql.pid" ; then echo " FAILED!"; exit 1; fi
   echo " SUCCESS!"
   cd "$RUN_PATH"
+  echo "$MYSQL_PORT" > "$RUN_PATH/mysql/mysql.port"
 }
 
 stopMySql() {
@@ -462,8 +447,7 @@ setupStoreFront() {
   echo "Verifying Store Front Service is ready..."
   if [ ! -f "$AXIS2_HOME/repository/services/StoreFront.aar" ]; then
     mkdir -p "$AXIS2_HOME/samples/appdstorefront"
-    cp -rf "$SCRIPT_PATH/src/appdstorefront/"* "$AXIS2_HOME/samples/appdstorefront/"
-    cd "$AXIS2_HOME/samples/appdstorefront"; "$ANT_HOME/bin/ant"; cd "$RUN_PATH"
+    cp -rf "$SCRIPT_PATH/src/appdstorefront/StoreFront.aar" "$AXIS2_HOME/repository/services/StoreFront.aar"
   fi
 }
 
@@ -485,9 +469,7 @@ doDependencyInstalls
 doJavaInstall
 doAxisInstall
 doMySqlInstall
-doJunixsocketInstall
 doMySqlConnectorInstall
-doAntInstall
 doNodeInstall
 doAgentInstalls
 setupMySql
