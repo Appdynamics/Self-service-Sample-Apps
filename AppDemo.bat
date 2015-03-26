@@ -159,9 +159,9 @@ GOTO :EOF
   if exist "%AXIS2_HOME%\lib\mysql-connector-java-5.0.8-bin.jar" echo Installed & GOTO :EOF
   CALL :verifyUserAgreement "The MySql Connector JDBC jar needs to be downloaded, do you wish to continue?"
   SET MS_DLOAD_FILE="mysql-connector-java-5.0.8.zip"
-  REM %uaria% "http://dev.mysql.com/get/Downloads/Connector-J/%MS_DLOAD_FILE%" -d "%RUN_PATH%" -o "mysql-connector.zip"
+  %uaria% "http://dev.mysql.com/get/Downloads/Connector-J/%MS_DLOAD_FILE%" -d "%RUN_PATH%" -o "mysql-connector.zip"
   echo Unpacking MySql Connector...
-  REM %uunzip% "%RUN_PATH%/mysql-connector.zip" -d "%RUN_PATH%" >NUL
+  %uunzip% "%RUN_PATH%/mysql-connector.zip" -d "%RUN_PATH%" >NUL
   copy "%RUN_PATH%\mysql-connector-java-5.0.8\mysql-connector-java-5.0.8-bin.jar" "%AXIS2_HOME%\lib\mysql-connector-java-5.0.8-bin.jar" >NUL
   DEL "%RUN_PATH%\mysql-connector.zip">NUL
   rmdir /S /Q "%RUN_PATH%\mysql-connector-java-5.0.8"
