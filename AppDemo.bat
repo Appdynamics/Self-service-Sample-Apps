@@ -254,7 +254,7 @@ GOTO :EOF
   CALL :doMySqlInstall
   CALL :doMySqlConnectorInstall
   CALL :startMySql
-  REM CALL :doNodeInstall
+  CALL :doNodeInstall
   CALL :setupStoreFront
   CALL :startAxis
   CALL :startNode
