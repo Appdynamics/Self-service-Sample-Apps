@@ -14,16 +14,16 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 
 public class StoreFront {
-  final String dir = new File(".").getAbsolutePath();
+  final String mysql_port_file = System.getenv().get("APPD_MYSQL_PORT_FILE");
 
   private Connection getConnection() throws Exception {
-    BufferedReader bufferedReader = new BufferedReader(new FileReader(dir + "/mysql/mysql.port"));
+    BufferedReader bufferedReader = new BufferedReader(new FileReader(mysql_port_file));
     String port = bufferedReader.readLine();
     bufferedReader.close();
 
     Class.forName("com.mysql.jdbc.Driver").newInstance();
     Connection connection = DriverManager
-      .getConnection("jdbc:mysql://localhost:" + port + "/AppDemo",
+      .getConnection("jdbc:mysql://localhost:" + port.trim() + "/AppDemo",
         "demouser",
         "demouser"
       );

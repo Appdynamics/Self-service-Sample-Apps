@@ -23,9 +23,9 @@ SET PROMPT_EACH_REQUEST=false
 SET TIMEOUT=300 #5 Minutes
 SET ARCH=$(uname -m)
 SET APP_STARTED=false
-SET REQUIRED_SPACE=2500000
 reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && set OS=32 || set OS=64
 
+SET LOGGED_IN=false
 SET SCRIPT_PATH=%~dp0
 SET SCRIPT_PATH=%SCRIPT_PATH:~0,-1%
 SET RUN_PATH=C:\AppDynamics
@@ -45,6 +45,9 @@ SET ucat="%SCRIPT_PATH%\utils\unixutils\cat.exe"
 SET uprintf="%SCRIPT_PATH%\utils\unixutils\printf.exe"
 SET uaria="%SCRIPT_PATH%\utils\aria2\aria2c.exe"
 SET uunzip="%SCRIPT_PATH%\utils\unixutils\unzip.exe"
+SET used="%SCRIPT_PATH%\utils\unixutils\sed.exe"
+SET ugrep="%SCRIPT_PATH%\utils\unixutils\grep.exe"
+SET uwget="%SCRIPT_PATH%\utils\gnu\wget.exe"
 
 SET node="%NODE_DIR%\node.exe"
 SET npm=%node% "%NODE_PATH%\npm\bin\npm-cli.js"
@@ -90,8 +93,6 @@ GOTO :Exit
 :about
   %ucat% "%SCRIPT_PATH%\about"
   echo.
-  echo   ** About %REQUIRED_SPACE% kB of space is required in order to install the demo **
-  echo.
 GOTO :EOF
 
 :usage
@@ -109,6 +110,23 @@ GOTO :EOF
   set /p response=Please input "Y" to accept, or "n" to decline and quit:
   if %response% == n CALL :Exit
   if not %response% == Y GOTO :verifyUserAgreementLoop
+GOTO :EOF
+
+:writeControllerInfo
+  SET WRITE_FILE=%~1
+  SET TIER_NAME=%~2
+  SET NODE_NAME=%~3
+  %uprintf% "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > "%WRITE_FILE%"
+  %uprintf% "<controller-info>" >> "%WRITE_FILE%"
+	%uprintf% "<controller-host>%%s</controller-host>" %CONTROLLER_ADDRESS% >> "%WRITE_FILE%"
+	%uprintf% "<controller-port>%%s</controller-port>" %CONTROLLER_PORT% >> "%WRITE_FILE%"
+	%uprintf% "<controller-ssl-enabled>%%s</controller-ssl-enabled>" %SSL% >> "%WRITE_FILE%"
+	%uprintf% "<account-name>%%s</account-name>" %ACCOUNT_NAME% >> "%WRITE_FILE%"
+	%uprintf% "<account-access-key>%%s</account-access-key>" %ACCOUNT_ACCESS_KEY% >> "%WRITE_FILE%"
+	%uprintf% "<application-name>%%s</application-name>" %APPLICATION_NAME% >> "%WRITE_FILE%"
+	%uprintf% "<tier-name>%%s</tier-name>" %TIER_NAME% >> "%WRITE_FILE%"
+	%uprintf% "<node-name>%%s</node-name>" %NODE_NAME% >> "%WRITE_FILE%"
+	%uprintf% "</controller-info>" >> "%WRITE_FILE%"
 GOTO :EOF
 
 :removeEnvironment
@@ -133,6 +151,7 @@ GOTO :EOF
   DEL "%RUN_PATH%\%AI_APACHE_DIR%-bin.zip">NUL
 GOTO :EOF
 
+
 :verifyJava
   if not exist "%JAVA_HOME%\bin\java.exe" echo Please make sure your JAVA_HOME environment variable is defined correctly & CALL :Exit
 GOTO :EOF
@@ -145,40 +164,44 @@ GOTO :EOF
   echo Verifying/Installing MySql...
   if exist "%RUN_PATH%\mysql\bin\mysqld.exe" echo Installed & GOTO :EOF
   CALL :verifyUserAgreement "An instance of MySql needs to be downloaded, do you wish to continue?"
-  SET MS_DLOAD_FILE="http://dev.mysql.com/get/Downloads/MySQL-5.6/mysql-5.6.23-win32.zip"
-  if %OS% == 64 SET MS_DLOAD_FILE="http://dev.mysql.com/get/Downloads/MySQL-5.6/mysql-5.6.23-winx64.zip"
+  SET MS_DLOAD_FILE=mysql-5.6.23-win32.zip
+  if %OS% == 64 SET MS_DLOAD_FILE=mysql-5.6.23-winx64.zip
   %uaria% "http://dev.mysql.com/get/Downloads/MySQL-5.6/%MS_DLOAD_FILE%" -d "%RUN_PATH%" -o "mysql.zip"
   echo Unpacking MySql (this process may take a few minutes)...
-  %uunzip% "%RUN_PATH%/mysql.zip" -d "%RUN_PATH%" >NUL
+  %uunzip% "%RUN_PATH%\mysql.zip" -d "%RUN_PATH%" >NUL
   DEL "%RUN_PATH%\mysql.zip">NUL
-  for /D %%i in (%RUN_PATH%\mysql-*) do move %%i "%RUN_PATH%/mysql" >NUL
+  for /D %%i in (%RUN_PATH%\mysql-*) do move %%i "%RUN_PATH%\mysql" >NUL
 GOTO :EOF
 
 :doMySqlConnectorInstall
   echo Verifying/Installing MySql Connector...
   if exist "%AXIS2_HOME%\lib\mysql-connector-java-5.0.8-bin.jar" echo Installed & GOTO :EOF
   CALL :verifyUserAgreement "The MySql Connector JDBC jar needs to be downloaded, do you wish to continue?"
-  SET MS_DLOAD_FILE="mysql-connector-java-5.0.8.zip"
+  SET MS_DLOAD_FILE=mysql-connector-java-5.0.8.zip
   %uaria% "http://dev.mysql.com/get/Downloads/Connector-J/%MS_DLOAD_FILE%" -d "%RUN_PATH%" -o "mysql-connector.zip"
   echo Unpacking MySql Connector...
-  %uunzip% "%RUN_PATH%/mysql-connector.zip" -d "%RUN_PATH%" >NUL
+  %uunzip% "%RUN_PATH%\mysql-connector.zip" -d "%RUN_PATH%" >NUL
   copy "%RUN_PATH%\mysql-connector-java-5.0.8\mysql-connector-java-5.0.8-bin.jar" "%AXIS2_HOME%\lib\mysql-connector-java-5.0.8-bin.jar" >NUL
   DEL "%RUN_PATH%\mysql-connector.zip">NUL
   rmdir /S /Q "%RUN_PATH%\mysql-connector-java-5.0.8"
 GOTO :EOF
 
+
 :startAxis
-  SET AXIS2_CLASSPATH=
-  for %%i in (%AXIS2_HOME%/lib/*.jar) do CALL :updateClassPath %%i
-  SET AXIS2_CLASSPATH=%AXIS2_HOME%:%AXIS2_HOME%/conf:%JAVA_HOME%/lib/tools.jar:%AXIS2_CLASSPATH%
+  SET APPD_MYSQL_PORT_FILE=%RUN_PATH%\mysql\mysql.port
+  CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\conf\controller-info.xml" "JavaServer" "JavaServer01"
+  CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\ver%APPSERVER_AGENT_VERSION%\conf\controller-info.xml" "JavaServer" "JavaServer01"
+  SET JAVA_OPTS=-javaagent:%RUN_PATH%\AppServerAgent\javaagent.jar
+  %used% "s/<parameter name=\"port\">[^\<]*<\/parameter>/<parameter name=\"port\">%AXIS_PORT%<\/parameter>/" "%AXIS2_HOME%\conf\axis2.xml" > "%AXIS2_HOME%\conf\axis2-new.xml"
+  move /Y "%AXIS2_HOME%\conf\axis2-new.xml" "%AXIS2_HOME%\conf\axis2.xml" >NUL
   echo Starting Axis...
-  start "_AppDynamicsSampleApp_ Axis" /MIN "%AXIS2_HOME%/bin/axis2server.bat"
+  start "_AppDynamicsSampleApp_ Axis" /MIN "%AXIS2_HOME%\bin\axis2server.bat"
 GOTO :EOF
 
 :setupStoreFront
-  echo Verifying Store Front6 Service is ready...
+  echo Verifying Store Front Service is ready...
   if not exist "%AXIS2_HOME%/repository/services/StoreFront.aar" (
-    mkdir /S /Q %AXIS2_HOME/samples/appdstorefront
+    mkdir /S /Q %AXIS2_HOME\samples\appdstorefront
     copy "%SCRIPT_PATH%\src\appdstorefront\StoreFront.aar" "%AXIS2_HOME%\repository\services\StoreFront.aar" >NUL
   )
 GOTO :EOF
@@ -188,26 +211,56 @@ GOTO :EOF
 GOTO :EOF
 
 :startMySql
-  echo "Starting MySql..."
+  echo Starting MySql...
   start "_AppDynamicsSampleApp_ MySql" /MIN "%RUN_PATH%\mysql\bin\mysqld.exe" --no-defaults --basedir=%RUN_PATH%\mysql --datadir=%RUN_PATH%\mysql\data --pid-file=%RUN_PATH%\mysql\data\mysql.pid --port=%MYSQL_PORT% --log-error=%RUN_PATH%\mysql\mysql.err --init-file="%SCRIPT_PATH%\src\mysql.sql"
   echo %MYSQL_PORT% > "%RUN_PATH%\mysql\mysql.port"
 GOTO :EOF
 
-:spaceCheck
+:resetAgentUP
+  SET __APPD_USERNAME=
+  SET __APPD_PASSWORD=
+GOTO :EOF
 
+:agentInstall
+  SET AGENT_DIR=%~1
+  SET AGENT_CHECK_FILE=%~2
+  SET AGENT_URL=%~3
+  echo Verifying/Install AppDynamics %AGENT_DIR%...
+  if exist "%RUN_PATH%\%AGENT_DIR%\%AGENT_CHECK_FILE%" echo INSTALLED & GOTO :EOF
+  mkdir /S /Q %RUN_PATH%\%AGENT_DIR%
+  if not %LOGGED_IN% == true (
+    GOTO :agentInstallLoopCheck
+    :agentInstallLoop
+    if exist "%RUN_PATH\cookies" ( echo Invalid Username/Password
+    ) else ( echo Please Sign in, in order to download AppDynamics Agents
+    )
+    SET /p __APPD_USERNAME=Username:
+    SET /p __APPD_PASSWORD=Password:
+    %uwget% -q -O NUL --save-cookies "%RUN_PATH%\cookies" --post-data "username=%__APPD_USERNAME%&password=%__APPD_PASSWORD%" --no-check-certificate "https://login.appdynamics.com/sso/login/" >NUL
+    :agentInstallLoopCheck
+    CALL :resetAgentUP
+    %ugrep% -s -q login.appdynamics.com "%RUN_PATH%\cookies"
+    if %ERRORLEVEL% == 1 GOTO :agentInstallLoop
+    SET LOGGED_IN=true
+  )
+  %uaria% --load-cookies "%RUN_PATH%\cookies" "%AGENT_URL%" -d "%RUN_PATH%\%AGENT_DIR%" -o "%AGENT_DIR%.zip"
+  echo Unpacking %AGENT_DIR% (this may take a few minutes)...
+  %uunzip% "%RUN_PATH%\%AGENT_DIR%\%AGENT_DIR%.zip" -d "%RUN_PATH%\%AGENT_DIR%" >NUL
+  DEL "%RUN_PATH%\%AGENT_DIR%\%AGENT_DIR%.zip"
+GOTO :EOF
+
+:doAgentInstalls
+  CALL :agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/%APPSERVER_AGENT_VERSION%/AppServerAgent-%APPSERVER_AGENT_VERSION%.zip"
 GOTO :EOF
 
 :doNodeDependencyInstall
   echo Verifiying/Installing %1
-  %npm% list %1 -g > %RUN_PATH%\varout
-  for /F "delims=" %%i in (%RUN_PATH%\varout) do SET nodeListResult=%%i
-  if not "%nodeListResult%" == "%nodeListResult:empty=%" ( %npm% install %1 -g
-  ) else ( echo Installed
-  )
+  %npm% install %1 -g
 GOTO :EOF
 
 :doNodeInstall
   if not exist "%NVM_DIR%\nvm.exe" (
+    echo Downloading NVM...
     %uaria% https://github.com/coreybutler/nvm-windows/releases/download/1.0.6/nvm-noinstall.zip -d "%RUN_PATH%" -o nvm.zip
     %uunzip% "%RUN_PATH%\nvm.zip" -d "%NVM_DIR%" >NUL
     DEL "%RUN_PATH%\nvm.zip" 2>NUL
@@ -248,11 +301,11 @@ GOTO :EOF
     CALL :verifyUserAgreement "Do you agree to install all of the required dependencies if they do not exist and continue?"
     SET NOPROMPT=true
   )
-  CALL :spaceCheck
   CALL :verifyJava
   CALL :doAxisInstall
   CALL :doMySqlInstall
   CALL :doMySqlConnectorInstall
+  CALL :doAgentInstalls
   CALL :startMySql
   CALL :doNodeInstall
   CALL :setupStoreFront
@@ -260,6 +313,7 @@ GOTO :EOF
   CALL :startNode
 
   echo The AppDynamics Sample App Environment has been started.
+  echo Please wait a few moments for the environment to initialize then:
   echo Visit http://localhost:%NODE_PORT%
   echo Press any key to quit...
   Pause >NUL
@@ -271,8 +325,8 @@ GOTO :EOF
   DEL "%RUN_PATH%\cookies" 2>NUL
   DEL "%RUN_PATH%\status" 2>NUL
   DEL "%RUN_PATH%\varout" 2>NUL
-  taskkill /FI "WINDOWTITLE eq _AppDynamicsSampleApp_*" >NUL
-  taskkill /F /IM mysqld.exe >NUL
+  taskkill /FI "WINDOWTITLE eq _AppDynamicsSampleApp_*" 1>NUL 2>&1
+  taskkill /F /IM mysqld.exe 1>NUL 2>&1
   ENDLOCAL
   call :CtrlC <"%temp%\ExitBatchYes.txt" 1>nul 2>&1
 GOTO :EOF

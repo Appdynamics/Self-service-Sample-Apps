@@ -321,8 +321,8 @@ doJavaInstall() {
   if [ -f "$JAVA_HOME/bin/java" ]; then echo "Installed"; return 0; fi
   echo "Cannot find java in the JAVA_HOME environment variable, checking local install."
   if [ -f "$RUN_PATH/java/bin/java" ]; then echo "Installed"; export JAVA_HOME="$RUN_PATH/java"; return 0; fi
-  verifyUserAgreement "Java is needed to continue.
-    You must accept the Oracle Binary Code License Agreement for Java SE (http://www.oracle.com/technetwork/java/javase/terms/license/index.html) to download the JDK binaries.
+  verifyUserAgreement "Java is needed to continue.  Quit and make sure JAVA_HOME points to the correct location, or continue and the java JRE will be downloaded for you.
+    You must accept the Oracle Binary Code License Agreement for Java SE (http://www.oracle.com/technetwork/java/javase/terms/license/index.html) to download the binaries.
     Do you accept the license agreement and wish to download the Java Binaries?"
   local DLOAD_FILE="jre-7u75-linux-i586.tar.gz"
   if [ "$ARCH" = "x86_64" ]; then DLOAD_FILE="jre-7u75-linux-x64.tar.gz"; fi
@@ -429,6 +429,7 @@ require(\"appdynamics\").profile({
 }
 
 startAxis() {
+  export APPD_MYSQL_PORT_FILE="$RUN_PATH/mysql/mysql.port"
   AXIS2_CLASSPATH=""
   for f in "$AXIS2_HOME"/lib/*.jar; do AXIS2_CLASSPATH="$AXIS2_CLASSPATH":${f}; done
   AXIS2_CLASSPATH="$AXIS2_HOME":"$AXIS2_HOME/conf":"$JAVA_HOME/lib/tools.jar":"$AXIS2_CLASSPATH"

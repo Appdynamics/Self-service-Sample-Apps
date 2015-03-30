@@ -1,11 +1,10 @@
 AppDynamics Demo Application Environment Setup
-This script will setup a sample application envionment to show how AppDynamics works.
+This script will setup a sample application environment to show how AppDynamics works.
 * This following will be installed and setup for the demo environment:
   - Apache Axis
-  - Apache Ant
   - NodeJS (with Express, Request, xml2js, jquery, Bootstrap, and Angular)
-  - MySql (with junixsocket and mysqlconnector)
-  - Java JDK
+  - MySql (with mysqlconnector)
+  - AppDynamics Node Agent
   - AppDynamics Machine Agent
   - AppDynamics Database Agent
   - AppDynamics App Server Agent
