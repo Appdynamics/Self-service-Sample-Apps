@@ -4,7 +4,7 @@ TITLE AppDynamicsSampleApp
 
 SETLOCAL
 SET APPLICATION_NAME=TestApplication
-SET AXIS_PORT=8887
+SET JAVA_PORT=8887
 SET NODE_PORT=8888
 SET MYSQL_PORT=8889
 SET AXIS_VERSION=1.6.2
@@ -39,6 +39,9 @@ SET AXIS2_HOME=%RUN_PATH%\%AXIS_DIR%
 SET ANT_DIR=apache-ant-%ANT_VERSION%
 SET ANT_HOME=%RUN_PATH%/%ANT_DIR%
 
+SET APPD_MYSQL_PORT_FILE=%RUN_PATH%\mysql\mysql.port
+SET APPD_TOMCAT_FILE=%RUN_PATH%\tomcat
+
 mkdir "%RUN_PATH%" 2>NUL
 
 SET ucat="%SCRIPT_PATH%\utils\unixutils\cat.exe"
@@ -64,7 +67,7 @@ if (%1)==() GOTO :startup
   if /I %1 == -k GOTO :verifyVal
   if /I %1 == -s GOTO :verifyVal
   if /I %1 == -n GOTO :verifyVal
-  if /I %1 == -a GOTO :verifyVal
+  if /I %1 == -j GOTO :verifyVal
   if /I %1 == -m GOTO :verifyVal
   echo Invalid option: %1! & GOTO :usage
   :verifyVal
@@ -82,7 +85,7 @@ if (%1)==() GOTO :startup
   if /I %1 == -k SET ACCOUNT_ACCESS_KEY=%~2& shift
   if /I %1 == -s SET SSL=%~2& shift
   if /I %1 == -n SET NODE_PORT=%~2& shift
-  if /I %1 == -a SET AXIS_PORT=%~2& shift
+  if /I %1 == -j SET JAVA_PORT=%~2& shift
   if /I %1 == -m SET MYSQL_PORT=%~2& shift
 :GETOPTS_END
   shift
@@ -136,28 +139,8 @@ GOTO :EOF
   Exit /B 0
 GOTO :EOF
 
-:apacheInstall
-  SET AI_INSTALL_NAME=%1
-  SET AI_APACHE_DIR=%2
-  SET AI_APACHE_CHECK_FILE=%3
-  SET AI_DOWNLOAD_PATH=%4
-  SET AI_MIRROR=%5
-  echo Verifying/Installing Apache %AI_INSTALL_NAME%
-  if exist "%RUN_PATH%\%AI_APACHE_DIR%\%AI_APACHE_CHECK_FILE%" echo Installed & GOTO :EOF
-  CALL :verifyUserAgreement "%AI_INSTALL_NAME% needs to be downloaded, do you wish to continue?"
-  %uaria% "%AI_MIRROR%/%AI_DOWNLOAD_PATH%/%AI_APACHE_DIR%-bin.zip" -d "%RUN_PATH%" -o "%AI_APACHE_DIR%-bin.zip"
-  echo Unpacking %AI_INSTALL_NAME% (this may take a few minutes)...
-  %uunzip% "%RUN_PATH%\%AI_APACHE_DIR%-bin.zip" -d "%RUN_PATH%" > NUL
-  DEL "%RUN_PATH%\%AI_APACHE_DIR%-bin.zip">NUL
-GOTO :EOF
-
-
 :verifyJava
   if not exist "%JAVA_HOME%\bin\java.exe" echo Please make sure your JAVA_HOME environment variable is defined correctly & CALL :Exit
-GOTO :EOF
-
-:doAxisInstall
-  CALL :apacheInstall Axis %AXIS_DIR% bin\axis2server.sh axis/axis2/java/core/%AXIS_VERSION% http://mirror.reverse.net/pub/apache
 GOTO :EOF
 
 :doMySqlInstall
@@ -173,47 +156,24 @@ GOTO :EOF
   for /D %%i in (%RUN_PATH%\mysql-*) do move %%i "%RUN_PATH%\mysql" >NUL
 GOTO :EOF
 
-:doMySqlConnectorInstall
-  echo Verifying/Installing MySql Connector...
-  if exist "%AXIS2_HOME%\lib\mysql-connector-java-5.0.8-bin.jar" echo Installed & GOTO :EOF
-  CALL :verifyUserAgreement "The MySql Connector JDBC jar needs to be downloaded, do you wish to continue?"
-  SET MS_DLOAD_FILE=mysql-connector-java-5.0.8.zip
-  %uaria% "http://dev.mysql.com/get/Downloads/Connector-J/%MS_DLOAD_FILE%" -d "%RUN_PATH%" -o "mysql-connector.zip"
-  echo Unpacking MySql Connector...
-  %uunzip% "%RUN_PATH%\mysql-connector.zip" -d "%RUN_PATH%" >NUL
-  copy "%RUN_PATH%\mysql-connector-java-5.0.8\mysql-connector-java-5.0.8-bin.jar" "%AXIS2_HOME%\lib\mysql-connector-java-5.0.8-bin.jar" >NUL
-  DEL "%RUN_PATH%\mysql-connector.zip">NUL
-  rmdir /S /Q "%RUN_PATH%\mysql-connector-java-5.0.8"
+:doTomcatInstall
+  echo Setting up Tomcat...
+  echo %JAVA_PORT% > "%APPD_TOMCAT_FILE%"
+  if not exist "%RUN_PATH%\tomcatrest\storefront.jar" mklink /D "%RUN_PATH%\tomcatrest" "%SCRIPT_PATH%\src\tomcat" >NUL
 GOTO :EOF
 
-
-:startAxis
-  SET APPD_MYSQL_PORT_FILE=%RUN_PATH%\mysql\mysql.port
+:startTomcat
   CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\conf\controller-info.xml" "JavaServer" "JavaServer01"
   CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\ver%APPSERVER_AGENT_VERSION%\conf\controller-info.xml" "JavaServer" "JavaServer01"
   SET JAVA_OPTS=-javaagent:%RUN_PATH%\AppServerAgent\javaagent.jar
-  %used% "s/<parameter name=\"port\">[^\<]*<\/parameter>/<parameter name=\"port\">%AXIS_PORT%<\/parameter>/" "%AXIS2_HOME%\conf\axis2.xml" > "%AXIS2_HOME%\conf\axis2-new.xml"
-  move /Y "%AXIS2_HOME%\conf\axis2-new.xml" "%AXIS2_HOME%\conf\axis2.xml" >NUL
-  echo Starting Axis...
-  start "_AppDynamicsSampleApp_ Axis" /MIN "%AXIS2_HOME%\bin\axis2server.bat"
-GOTO :EOF
-
-:setupStoreFront
-  echo Verifying Store Front Service is ready...
-  if not exist "%AXIS2_HOME%/repository/services/StoreFront.aar" (
-    mkdir /S /Q %AXIS2_HOME\samples\appdstorefront
-    copy "%SCRIPT_PATH%\src\appdstorefront\StoreFront.aar" "%AXIS2_HOME%\repository\services\StoreFront.aar" >NUL
-  )
-GOTO :EOF
-
-:updateClassPath
-  SET AXIS2_CLASSPATH=%AXIS2_CLASSPATH%:%1
+  echo Starting Tomcat...
+  start "_AppDynamicsSampleApp_ Tomcat" /MIN "%RUN_PATH%\tomcatrest\bin\webapp.bat"
 GOTO :EOF
 
 :startMySql
   echo Starting MySql...
   start "_AppDynamicsSampleApp_ MySql" /MIN "%RUN_PATH%\mysql\bin\mysqld.exe" --no-defaults --basedir=%RUN_PATH%\mysql --datadir=%RUN_PATH%\mysql\data --pid-file=%RUN_PATH%\mysql\data\mysql.pid --port=%MYSQL_PORT% --log-error=%RUN_PATH%\mysql\mysql.err --init-file="%SCRIPT_PATH%\src\mysql.sql"
-  echo %MYSQL_PORT% > "%RUN_PATH%\mysql\mysql.port"
+  echo %MYSQL_PORT% > "%APPD_MYSQL_PORT_FILE%"
 GOTO :EOF
 
 :resetAgentUP
@@ -274,7 +234,6 @@ GOTO :EOF
   echo Verifying/Installing Node Express...
   CALL :doNodeDependencyInstall express
   CALL :doNodeDependencyInstall request
-  CALL :doNodeDependencyInstall xml2js
   CALL :doNodeDependencyInstall jquery@2.1.3
   CALL :doNodeDependencyInstall bootstrap@3.3.4
   CALL :doNodeDependencyInstall angular@1.3.14
@@ -302,14 +261,12 @@ GOTO :EOF
     SET NOPROMPT=true
   )
   CALL :verifyJava
-  CALL :doAxisInstall
+  CALL :doTomcatInstall
   CALL :doMySqlInstall
-  CALL :doMySqlConnectorInstall
   CALL :doAgentInstalls
   CALL :startMySql
   CALL :doNodeInstall
-  CALL :setupStoreFront
-  CALL :startAxis
+  CALL :startTomcat
   CALL :startNode
 
   echo The AppDynamics Sample App Environment has been started.
@@ -325,6 +282,7 @@ GOTO :EOF
   DEL "%RUN_PATH%\cookies" 2>NUL
   DEL "%RUN_PATH%\status" 2>NUL
   DEL "%RUN_PATH%\varout" 2>NUL
+  DEL "%APPD_TOMCAT_FILE%" 2>NUL
   taskkill /FI "WINDOWTITLE eq _AppDynamicsSampleApp_*" 1>NUL 2>&1
   taskkill /F /IM mysqld.exe 1>NUL 2>&1
   ENDLOCAL

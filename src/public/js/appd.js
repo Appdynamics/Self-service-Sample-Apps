@@ -63,13 +63,19 @@
       });
       $scope.consumeProduct = function(product, $event) {
         product.loading = true;
-        return $http.get('/consume', {
+        return $http.get('/update', {
           method: 'GET',
           params: {
-            id: product.id
+            id: product.id,
+            name: product.name,
+            stock: product.stock - 1 > 0 ? product.stock - 1 : 0
           }
         }).success(function(data) {
-          product.stock = data[0].stock;
+          if (!data.length) {
+            alert('Unable to purchase product!');
+          } else {
+            product.stock = data[0].stock;
+          }
           return product.loading = false;
         }).error(function() {
           alert('Unable to purchase product!');
@@ -91,6 +97,7 @@
           $rootScope.exceptions++;
           return $scope.raising = false;
         }).error(function() {
+          alert('Unable to raise exception!');
           return $scope.raising = false;
         });
       };

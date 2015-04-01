@@ -6,10 +6,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.PreparedStatement;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.lang.StringBuilder;
-import java.util.Properties;
-import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
 
@@ -18,16 +15,15 @@ public class StoreFront {
 
   private Connection getConnection() throws Exception {
     BufferedReader bufferedReader = new BufferedReader(new FileReader(mysql_port_file));
-    String port = bufferedReader.readLine();
+    String port = bufferedReader.readLine().trim();
     bufferedReader.close();
 
     Class.forName("com.mysql.jdbc.Driver").newInstance();
-    Connection connection = DriverManager
-      .getConnection("jdbc:mysql://localhost:" + port.trim() + "/AppDemo",
+    return DriverManager
+      .getConnection("jdbc:mysql://localhost:" + port + "/AppDemo",
         "demouser",
         "demouser"
       );
-    return connection;
   }
 
   private PreparedStatement getStatement(String query) {
@@ -60,8 +56,12 @@ public class StoreFront {
           if (column > 1) {
             stringBuilder.append(",");
           }
-          stringBuilder.append("\"" + columnName + "\"" + ":");
-          stringBuilder.append("\"" + resultSet.getObject(column) + "\"");
+          stringBuilder
+            .append("\"")
+            .append(columnName)
+            .append("\":\"")
+            .append(resultSet.getObject(column))
+            .append("\"");
         }
         stringBuilder.append("}");
       }
@@ -103,7 +103,7 @@ public class StoreFront {
   }
 
   public String addProduct(String name, int stock) {
-    PreparedStatement preparedStatement = null;
+    PreparedStatement preparedStatement;
     try {
       preparedStatement = getStatement("INSERT INTO products (name,  stock) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS);
       preparedStatement.setString(1, name);
@@ -120,7 +120,7 @@ public class StoreFront {
   }
 
   public String updateProduct(int id, String name, int stock) {
-    PreparedStatement preparedStatement = null;
+    PreparedStatement preparedStatement;
     try {
       preparedStatement = getStatement("UPDATE products SET name = ?, stock = ? WHERE id = ?");
       preparedStatement.setString(1, name);
@@ -133,7 +133,7 @@ public class StoreFront {
   }
 
   public void deleteProduct(int id) {
-    PreparedStatement preparedStatement = null;
+    PreparedStatement preparedStatement;
     try {
       preparedStatement = getStatement("DELETE FROM products WHERE id = ?");
       preparedStatement.setInt(1, id);
@@ -143,7 +143,7 @@ public class StoreFront {
   }
 
   public String consumeProduct(int id) {
-    PreparedStatement preparedStatement = null;
+    PreparedStatement preparedStatement;
     try {
       preparedStatement = getStatement("UPDATE products SET stock = CASE WHEN stock - 1 < 0 THEN 0 ELSE stock - 1 END WHERE id = ?");
       preparedStatement.setInt(1, id);

@@ -51,12 +51,17 @@ app.controller 'StoreFrontController', [
 
     $scope.consumeProduct = (product, $event) ->
       product.loading = true
-      $http.get '/consume',
+      $http.get '/update',
         method: 'GET'
         params:
           id: product.id
+          name: product.name
+          stock: if product.stock - 1 > 0 then product.stock - 1 else 0
       .success (data) ->
-        product.stock = data[0].stock
+        if not data.length
+          alert 'Unable to purchase product!'
+        else
+          product.stock = data[0].stock
         product.loading = false
       .error ->
         alert 'Unable to purchase product!'
@@ -76,6 +81,7 @@ app.controller 'StoreFrontController', [
         $rootScope.exceptions++
         $scope.raising = false
       .error ->
+        alert 'Unable to raise exception!'
         $scope.raising = false
 
 ]

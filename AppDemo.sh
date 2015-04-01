@@ -1,7 +1,7 @@
 #!/bin/bash
 
 APPLICATION_NAME="TestApplication"
-AXIS_PORT=8887
+JAVA_PORT=8887
 NODE_PORT=8888
 MYSQL_PORT=8889
 AXIS_VERSION="1.6.2"
@@ -32,6 +32,9 @@ AXIS_DIR="axis2-$AXIS_VERSION"
 export AXIS2_HOME="$RUN_PATH/$AXIS_DIR"
 ANT_DIR="apache-ant-$ANT_VERSION"
 export ANT_HOME="$RUN_PATH/$ANT_DIR"
+
+export APPD_MYSQL_PORT_FILE="$RUN_PATH/mysql/mysql.port"
+export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 
 about() {
   cat "$SCRIPT_PATH/about"
@@ -72,7 +75,7 @@ while getopts :c:p:u:k:s:n:a:m:hdyz OPT; do
     k) ACCOUNT_ACCESS_KEY=$OPTARG;;
     s) SSL=$OPTARG;;
     n) NODE_PORT=$OPTARG;;
-    a) AXIS_PORT=$OPTARG;;
+    j) JAVA_PORT=$OPTARG;;
     m) MYSQL_PORT=$OPTARG;;
     h) usage;;
     y) NOPROMPT=true;;
@@ -243,23 +246,16 @@ doAgentInstalls() {
   agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/$APPSERVER_AGENT_VERSION/AppServerAgent-$APPSERVER_AGENT_VERSION.zip"
 }
 
-apacheInstall() {
-  local INSTALL_NAME="$1"; local APACHE_DIR="$2"; local APACHE_CHECK_FILE="$3"; local DOWNLOAD_PATH="$4"; local MIRROR="$5"
-  echo "Verifying/Installing Apache $INSTALL_NAME..."
-  if [ -f "$RUN_PATH/$APACHE_DIR/$APACHE_CHECK_FILE" ]; then echo "Installed"; return 0; fi
-  verifyUserAgreement "$INSTALL_NAME needs to be downloaded, do you wish to continue?"
-  wget "$MIRROR/$DOWNLOAD_PATH/$APACHE_DIR-bin.zip" -O "$RUN_PATH/$APACHE_DIR-bin.zip"
-  if [ $? -ne 0 ]; then
-    wget "http://www.us.apache.org/dist/$DOWNLOAD_PATH/$APACHE_DIR-bin.zip" -O "$RUN_PATH/$APACHE_DIR-bin.zip"
-    if [ $? -ne 0 ]; then echo "Unable to connect to mirror to download Apache $INSTALL_NAME, exiting." && exit 1; fi
-  fi
-  echo "Unpacking $INSTALL_NAME (this may take a few minutes)..."
-  unzip "$RUN_PATH/$APACHE_DIR-bin.zip" -d "$RUN_PATH" >/dev/null; rm "$RUN_PATH/$APACHE_DIR-bin.zip"
-  if [ ! -f "$RUN_PATH/$APACHE_DIR/$APACHE_CHECK_FILE" ]; then echo "Bad Apache Archive: $APACHE_DIR-bin.zip, exiting."; exit 1; fi
+doTomcatInstall() {
+  echo "$JAVA_PORT" > "$APPD_TOMCAT_FILE"
+  ln -sf "$SCRIPT_PATH/src/tomcat" "$RUN_PATH/tomcatrest"
 }
 
-doAxisInstall() {
-  apacheInstall "Axis" "$AXIS_DIR" "bin/axis2server.sh" "axis/axis2/java/core/$AXIS_VERSION" "http://mirror.reverse.net/pub/apache"
+startTomcat() {
+  writeControllerInfo "$RUN_PATH/AppServerAgent/conf/controller-info.xml" "JavaServer" "JavaServer01"
+  writeControllerInfo "$RUN_PATH/AppServerAgent/ver$APPSERVER_AGENT_VERSION/conf/controller-info.xml" "JavaServer" "JavaServer01"
+  export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
+  startProcess "Tomcat Server (Port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/webapp" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR: Failed ProtocolHandler"
 }
 
 setupNodeNvm() {
@@ -285,9 +281,6 @@ doNodeInstall() {
 
   echo "Verifying/Installing Node Request..."
   if ! npm list request >/dev/null ; then npm install request; else echo "Installed"; fi
-
-  echo "Verifying/Installing Node xml2js..."
-  if ! npm list xml2js >/dev/null ; then npm install xml2js; else echo "Installed"; fi
 
   echo "Verifying/Installing jQuery..."
   if ! npm list jquery >/dev/null ; then npm install jquery@2.1.3; else echo "Installed"; fi
@@ -334,19 +327,6 @@ doJavaInstall() {
   export JAVA_HOME="$RUN_PATH/java"
 }
 
-doMySqlConnectorInstall() {
-  echo "Verifying/Installing MySql Connector..."
-  if [ -f "$AXIS2_HOME/lib/mysql-connector-java-5.0.8-bin.jar" ]; then echo "Installed"; return 0; fi
-  verifyUserAgreement "The MySql Connector JDBC jar needs to be downloaded, do you wish to continue?"
-  local DLOAD_FILE="mysql-connector-java-5.0.8.tar.gz"
-  wget "http://dev.mysql.com/get/Downloads/Connector-J/$DLOAD_FILE" -O "$RUN_PATH/mysql-connector.tar.gz"
-  echo "Unpacking MySql Connector..."
-  gunzip -c "$RUN_PATH/mysql-connector.tar.gz" | tar xopf -
-  mv "$RUN_PATH/mysql-connector-java-5.0.8/mysql-connector-java-5.0.8-bin.jar" "$AXIS2_HOME/lib/mysql-connector-java-5.0.8-bin.jar"
-  rm "$RUN_PATH/mysql-connector.tar.gz"
-  rm -rf "$RUN_PATH/mysql-connector-java-5.0.8"
-}
-
 setupMySql() {
   if [ -f "$RUN_PATH/mysql/data/ready" ]; then return 0; fi
   verifyUserAgreement "The script needs to create the user appdmysql to continue.
@@ -368,7 +348,7 @@ startMySql() {
   if ! wait_for_pid created "$!" "$RUN_PATH/mysql/data/mysql.pid" ; then echo " FAILED!"; exit 1; fi
   echo " SUCCESS!"
   cd "$RUN_PATH"
-  echo "$MYSQL_PORT" > "$RUN_PATH/mysql/mysql.port"
+  echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
 }
 
 stopMySql() {
@@ -415,8 +395,7 @@ require(\"appdynamics\").profile({
     controllerSslEnabled: %s,
     applicationName: \"%s\",
     tierName: \"NodeServer\",
-    nodeName: \"NodeServer01\",
-    debug: true
+    nodeName: \"NodeServer01\"
 });
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
   cat "$SCRIPT_PATH/src/server.js" >> "$RUN_PATH/node/server.js"
@@ -428,30 +407,6 @@ require(\"appdynamics\").profile({
   startProcess "Node (Port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "Node Server Failed"
 }
 
-startAxis() {
-  export APPD_MYSQL_PORT_FILE="$RUN_PATH/mysql/mysql.port"
-  AXIS2_CLASSPATH=""
-  for f in "$AXIS2_HOME"/lib/*.jar; do AXIS2_CLASSPATH="$AXIS2_CLASSPATH":${f}; done
-  AXIS2_CLASSPATH="$AXIS2_HOME":"$AXIS2_HOME/conf":"$JAVA_HOME/lib/tools.jar":"$AXIS2_CLASSPATH"
-  export AXIS2_CLASSPATH
-  writeControllerInfo "$RUN_PATH/AppServerAgent/conf/controller-info.xml" "JavaServer" "JavaServer01"
-  writeControllerInfo "$RUN_PATH/AppServerAgent/ver$APPSERVER_AGENT_VERSION/conf/controller-info.xml" "JavaServer" "JavaServer01"
-  awk '!/javaagent.jar/' "$AXIS2_HOME/bin/axis2server.sh" > tmp && mv tmp "$AXIS2_HOME/bin/axis2server.sh"
-  awk -v path="$RUN_PATH/AppServerAgent" -v controller="$CONTROLLER_ADDRESS" -v port="$CONTROLLER_PORT" -v ssl="$SSL" -v name="$ACCOUNT_NAME" -v key="$ACCOUNT_ACCESS_KEY" -v app="$APPLICATION_NAME" -v libpath="$AXIS2_HOME/lib" '/JAVA_OPTS/ && !f {print $0 "\nJAVA_OPTS=\"$JAVA_OPTS -javaagent:"path"/javaagent.jar -Dappdynamics.controller.hostName="controller" -Dappdynamics.controller.port="port" -Dappdynamics.controller.ssl.enabled="ssl" -Dappdynamics.agent.accountName="name" -Dappdynamics.agent.accountAccessKey="key" -Dappdynamics.agent.applicationName="app" -Dappdynamics.agent.tierName=JavaServer -Dappdynamics.agent.nodeName=JavaServer01 -Djava.library.path="libpath"\"";f=1;next}1' "$AXIS2_HOME/bin/axis2server.sh" > tmp && mv tmp "$AXIS2_HOME/bin/axis2server.sh"
-  sed 's/<parameter name=\"port\">[^\<]*<\/parameter>/<parameter name=\"port\">'"$AXIS_PORT"'<\/parameter>/' "$AXIS2_HOME/conf/axis2.xml" > "$AXIS2_HOME/conf/axis2-new.xml"
-  mv "$AXIS2_HOME/conf/axis2-new.xml" "$AXIS2_HOME/conf/axis2.xml"
-  sed 's/^java \$JAVA_OPTS/'$(escaper "$JAVA_HOME/bin/java")' \$JAVA_OPTS/' "$AXIS2_HOME/bin/axis2server.sh" > tmp && mv tmp "$AXIS2_HOME/bin/axis2server.sh"
-  startProcess "Axis Server (Port $AXIS_PORT)" "sh $AXIS2_HOME/bin/axis2server.sh" "[INFO] [SimpleAxisServer] Started" "[SimpleAxisServer] Failed"
-}
-
-setupStoreFront() {
-  echo "Verifying Store Front Service is ready..."
-  if [ ! -f "$AXIS2_HOME/repository/services/StoreFront.aar" ]; then
-    mkdir -p "$AXIS2_HOME/samples/appdstorefront"
-    cp -rf "$SCRIPT_PATH/src/appdstorefront/StoreFront.aar" "$AXIS2_HOME/repository/services/StoreFront.aar"
-  fi
-}
-
 onExitCleanup() {
   trap - TERM; stty echo
   echo ""
@@ -459,6 +414,7 @@ onExitCleanup() {
     echo "Killing all processes and cleaning up..."
     rm -f "$RUN_PATH/cookies"
     rm -f "$RUN_PATH/status"
+    rm -f "$RUN_PATH/tomcat"
     stopMySql
   fi
   kill 0
@@ -468,9 +424,8 @@ trap "exit" INT TERM && trap onExitCleanup EXIT
 startup
 doDependencyInstalls
 doJavaInstall
-doAxisInstall
+doTomcatInstall
 doMySqlInstall
-doMySqlConnectorInstall
 doNodeInstall
 doAgentInstalls
 setupMySql
@@ -478,8 +433,7 @@ startMySql
 runMySqlScripts
 startMachineAgent
 startDatabaseAgent
-setupStoreFront
-startAxis
+startTomcat
 startNode
 
 echo "Sample App Environment Setup Complete!"

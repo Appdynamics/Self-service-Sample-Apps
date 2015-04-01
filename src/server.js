@@ -1,35 +1,44 @@
 var express = require('express');
 var server = express();
 var request = require('request');
-var xml2js = require('xml2js');
 var domain = require('domain').create();
-var xmlParser = new xml2js.Parser();
 var node = 8888;
-var axis = 8887;
+var java = 8887;
 
-function setupStoreFrontCall(nodePath, apiRequest) {
-  server.get('/' + nodePath, function(serverRequest, response) {
-    var url = 'http://localhost:' + axis + '/axis2/services/StoreFront/' + apiRequest;
-    var form = {};
+function setupStoreFrontCall(method, nodePath, apiRequest) {
+  server.get('/' + nodePath, function (serverRequest, response) {
+    var url = 'http://localhost:' + java + '/rest/storefront' + apiRequest;
+    var query = {};
     for (var key in serverRequest.query) {
       if (serverRequest.query.hasOwnProperty(key)) {
-        form[key] = serverRequest.query[key];
+        query[key] = serverRequest.query[key];
       }
     }
-    request.post({
-      url: url,
-      form: form
-    }, function(error, apiResponse, body) {
+
+    data = {
+      method: method,
+      url: url
+    };
+
+    if (method == 'POST') {
+      data['form'] = query;
+    } else if (method == 'GET') {
+      data['query'] = query;
+    } else {
+      if (query.hasOwnProperty("id")) {
+        data.url += "/" + query.id;
+      }
+      if (query.hasOwnProperty("name")) {
+        data.url += "/" + query.name;
+      }
+      if (query.hasOwnProperty("stock")) {
+        data.url += "/" + query.stock;
+      }
+    }
+
+    request(data, function (error, apiResponse, body) {
       if (apiResponse && body) {
-        xmlParser.parseString(body, function (err, result) {
-          var responseKey = "ns:" + apiRequest + "Response";
-          var returnKey = "ns:return";
-          if (result.hasOwnProperty(responseKey) && result[responseKey].hasOwnProperty(returnKey)) {
-            response.send(result[responseKey][returnKey][0]);
-          } else {
-              response.send("[]");
-          }
-        });
+        response.send(body);
       } else {
         response.send("[]");
       }
@@ -38,20 +47,20 @@ function setupStoreFrontCall(nodePath, apiRequest) {
 }
 
 server.use(express.static(__dirname + '/public'));
-setupStoreFrontCall('retrieveAll', 'getAllProducts');
-setupStoreFrontCall('retrieve', 'getProduct');
-setupStoreFrontCall('add', 'addProduct');
-setupStoreFrontCall('update', 'updateProduct');
-setupStoreFrontCall('delete', 'deleteProduct');
-setupStoreFrontCall('consume', 'consumeProduct');
+setupStoreFrontCall('GET', 'retrieveAll', '/all');
+setupStoreFrontCall('GET', 'retrieve', '');
+setupStoreFrontCall('POST', 'add', '');
+setupStoreFrontCall('PUT', 'update', '/put');
+setupStoreFrontCall('DELETE', 'delete', '/del');
 
-domain.on('error', function(err) {});
+domain.on('error', function (err) {
+});
 
-server.get('/exception', function(serverRequest, response) {
-    domain.run(function() {
-        throw new Error('User triggered exception!');
-    });
-    response.send("[]");
+server.get('/exception', function (serverRequest, response) {
+  domain.run(function () {
+    throw new Error('User triggered exception!');
+  });
+  response.send("[]");
 });
 
 server.listen(node, 'localhost', function () {
