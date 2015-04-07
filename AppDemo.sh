@@ -20,7 +20,6 @@ PROMPT_EACH_REQUEST=false
 TIMEOUT=300 #5 Minutes
 ARCH=$(uname -m)
 APP_STARTED=false
-REQUIRED_SPACE=2500000
 
 SCRIPT_PATH="$(readlink -f "$0" | xargs dirname)"
 RUN_PATH="/var/tmp/AppDynamics"
@@ -39,9 +38,7 @@ export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 about() {
   cat "$SCRIPT_PATH/about"
   echo "
-  ** About $REQUIRED_SPACE kB of space is required in order to install the demo **
-
-  * Note The following dependencies will are required and will also be installed:
+  * Note The following dependencies are required and will also be installed:
     - wget
     - unzip
     - gzip
@@ -106,14 +103,6 @@ verifyUserAgreement() {
   done
 }
 
-spaceCheck() {
-  local AVAILABLE_SPACE=$(df -P "$RUN_PATH" | awk 'NR==2 {print $4}')
-  if [ ${AVAILABLE_SPACE} -lt ${REQUIRED_SPACE} ]; then
-    echo "There is not enough space to install the demo!  At least $REQUIRED_SPACE is needed, there is only $AVAILABLE_SPACE"
-    exit 1
-  fi
-}
-
 startup() {
   about
   if ! ${PROMPT_EACH_REQUEST} ; then
@@ -121,8 +110,6 @@ startup() {
       (If you wish to be prompted before each operation run this script with the -z flag)"
     NOPROMPT=true
   fi
-
-  spaceCheck
   APP_STARTED=true
 }
 
@@ -246,16 +233,48 @@ doAgentInstalls() {
   agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/$APPSERVER_AGENT_VERSION/AppServerAgent-$APPSERVER_AGENT_VERSION.zip"
 }
 
+performTomcatDependencyDownload() {
+  local TOMCAT_URL=$1
+  wget "http://repo.maven.apache.org/maven2/$TOMCAT_URL" -x --cut-dirs=1 -nH -P "$RUN_PATH/tomcatrest/repo"
+}
+
 doTomcatInstall() {
+  echo "Setting up Tomcat..."
   echo "$JAVA_PORT" > "$APPD_TOMCAT_FILE"
-  ln -sf "$SCRIPT_PATH/src/tomcat" "$RUN_PATH/tomcatrest"
+  mkdir -p $RUN_PATH/tomcatrest/repo
+  mkdir -p $RUN_PATH/tomcatrest/bin
+  cp "$SCRIPT_PATH/repo/storefront.jar" "$RUN_PATH/tomcatrest/repo/storefront.jar" >/dev/null
+  cp "$SCRIPT_PATH/webapp.sh" "$RUN_PATH/tomcatrest/bin/webapp.sh" >/dev/null
+  if [ -f "$RUN_PATH/tomcatrest/repo/org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar" ]; then echo "Installed"; return 0; fi
+  performTomcatDependencyDownload "org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar"
+  performTomcatDependencyDownload "org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar"
+  performTomcatDependencyDownload "org/glassfish/hk2/external/javax.inject/2.3.0-b05/javax.inject-2.3.0-b05.jar"
+  performTomcatDependencyDownload "org/glassfish/jersey/core/jersey-common/2.10.1/jersey-common-2.10.1.jar"
+  performTomcatDependencyDownload "javax/annotation/javax.annotation-api/1.2/javax.annotation-api-1.2.jar"
+  performTomcatDependencyDownload "org/glassfish/jersey/bundles/repackaged/jersey-guava/2.10.1/jersey-guava-2.10.1.jar"
+  performTomcatDependencyDownload "org/glassfish/hk2/hk2-api/2.3.0-b05/hk2-api-2.3.0-b05.jar"
+  performTomcatDependencyDownload "org/glassfish/hk2/hk2-utils/2.3.0-b05/hk2-utils-2.3.0-b05.jar"
+  performTomcatDependencyDownload "org/glassfish/hk2/external/aopalliance-repackaged/2.3.0-b05/aopalliance-repackaged-2.3.0-b05.jar"
+  performTomcatDependencyDownload "org/glassfish/hk2/hk2-locator/2.3.0-b05/hk2-locator-2.3.0-b05.jar"
+  performTomcatDependencyDownload "org/javassist/javassist/3.18.1-GA/javassist-3.18.1-GA.jar"
+  performTomcatDependencyDownload "org/glassfish/hk2/osgi-resource-locator/1.0.1/osgi-resource-locator-1.0.1.jar"
+  performTomcatDependencyDownload "org/glassfish/jersey/core/jersey-server/2.10.1/jersey-server-2.10.1.jar"
+  performTomcatDependencyDownload "org/glassfish/jersey/core/jersey-client/2.10.1/jersey-client-2.10.1.jar"
+  performTomcatDependencyDownload "javax/validation/validation-api/1.1.0.Final/validation-api-1.1.0.Final.jar"
+  performTomcatDependencyDownload "javax/ws/rs/javax.ws.rs-api/2.0/javax.ws.rs-api-2.0.jar"
+  performTomcatDependencyDownload "mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar"
+  performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-logging-juli/7.0.57/tomcat-embed-logging-juli-7.0.57.jar"
+  performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-jasper/7.0.57/tomcat-embed-jasper-7.0.57.jar"
+  performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar"
+  performTomcatDependencyDownload "org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar"
+  performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar"
 }
 
 startTomcat() {
   writeControllerInfo "$RUN_PATH/AppServerAgent/conf/controller-info.xml" "JavaServer" "JavaServer01"
   writeControllerInfo "$RUN_PATH/AppServerAgent/ver$APPSERVER_AGENT_VERSION/conf/controller-info.xml" "JavaServer" "JavaServer01"
   export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
-  startProcess "Tomcat Server (Port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/webapp" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR: Failed ProtocolHandler"
+  startProcess "Tomcat Server (Port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/webapp.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR: Failed ProtocolHandler"
 }
 
 setupNodeNvm() {
@@ -317,8 +336,8 @@ doJavaInstall() {
   verifyUserAgreement "Java is needed to continue.  Quit and make sure JAVA_HOME points to the correct location, or continue and the java JRE will be downloaded for you.
     You must accept the Oracle Binary Code License Agreement for Java SE (http://www.oracle.com/technetwork/java/javase/terms/license/index.html) to download the binaries.
     Do you accept the license agreement and wish to download the Java Binaries?"
-  local DLOAD_FILE="jre-7u75-linux-i586.tar.gz"
-  if [ "$ARCH" = "x86_64" ]; then DLOAD_FILE="jre-7u75-linux-x64.tar.gz"; fi
+  local DLOAD_FILE="jdk-7u75-linux-i586.tar.gz"
+  if [ "$ARCH" = "x86_64" ]; then DLOAD_FILE="jdk-7u75-linux-x64.tar.gz"; fi
   wget --no-check-certificate -c --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/7u75-b13/$DLOAD_FILE" -O "$RUN_PATH/java.tar.gz"
   echo "Unpacking Java (this process may take a few minutes)..."
   gunzip -c "$RUN_PATH/java.tar.gz" | tar xopf -
@@ -376,7 +395,7 @@ runMySqlScripts() {
 
 startMachineAgent() {
   writeControllerInfo "$RUN_PATH/MachineAgent/conf/controller-info.xml"
-  startProcess "Machine Agent" "java -jar $RUN_PATH/MachineAgent/machineagent.jar" "NOWAIT"
+  startProcess "Machine Agent" "$JAVA_HOME/bin/java -jar $RUN_PATH/MachineAgent/machineagent.jar" "NOWAIT"
 }
 
 startDatabaseAgent() {

@@ -4,8 +4,8 @@ TITLE AppDynamicsSampleApp
 
 SETLOCAL
 SET APPLICATION_NAME=TestApplication
-SET JAVA_PORT=8887
-SET NODE_PORT=8888
+SET BACKEND_PORT=8887
+SET HTTP_PORT=8888
 SET MYSQL_PORT=8889
 SET AXIS_VERSION=1.6.2
 SET ANT_VERSION=1.9.4
@@ -23,7 +23,7 @@ SET PROMPT_EACH_REQUEST=false
 SET TIMEOUT=300 #5 Minutes
 SET ARCH=$(uname -m)
 SET APP_STARTED=false
-reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && set OS=32 || set OS=64
+reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && set OSBIT=32 || set OSBIT=64
 
 SET LOGGED_IN=false
 SET SCRIPT_PATH=%~dp0
@@ -44,16 +44,17 @@ SET APPD_TOMCAT_FILE=%RUN_PATH%\tomcat
 
 mkdir "%RUN_PATH%" 2>NUL
 
-SET ucat="%SCRIPT_PATH%\utils\unixutils\cat.exe"
-SET uprintf="%SCRIPT_PATH%\utils\unixutils\printf.exe"
-SET uaria="%SCRIPT_PATH%\utils\aria2\aria2c.exe"
-SET uunzip="%SCRIPT_PATH%\utils\unixutils\unzip.exe"
-SET used="%SCRIPT_PATH%\utils\unixutils\sed.exe"
-SET ugrep="%SCRIPT_PATH%\utils\unixutils\grep.exe"
-SET uwget="%SCRIPT_PATH%\utils\gnu\wget.exe"
+SET ucat="%RUN_PATH%\utils\unixutils\usr\local\wbin\cat.exe"
+SET uprintf="%RUN_PATH%\utils\unixutils\usr\local\wbin\printf.exe"
+SET uunzip="%RUN_PATH%\utils\unixutils\usr\local\wbin\unzip.exe"
+SET used="%RUN_PATH%\utils\unixutils\usr\local\wbin\sed.exe"
+SET ugrep="%RUN_PATH%\utils\unixutils\usr\local\wbin\grep.exe"
+SET uwget="%RUN_PATH%\utils\wget.exe"
 
 SET node="%NODE_DIR%\node.exe"
 SET npm=%node% "%NODE_PATH%\npm\bin\npm-cli.js"
+
+SET iis="%windir%\system32\inetsrv\AppCmd.exe"
 
 if (%1)==() GOTO :startup
 :GETOPTS
@@ -84,8 +85,8 @@ if (%1)==() GOTO :startup
   if /I %1 == -u SET ACCOUNT_NAME=%~2& shift
   if /I %1 == -k SET ACCOUNT_ACCESS_KEY=%~2& shift
   if /I %1 == -s SET SSL=%~2& shift
-  if /I %1 == -n SET NODE_PORT=%~2& shift
-  if /I %1 == -j SET JAVA_PORT=%~2& shift
+  if /I %1 == -n SET HTTP_PORT=%~2& shift
+  if /I %1 == -j SET BACKEND_PORT=%~2& shift
   if /I %1 == -m SET MYSQL_PORT=%~2& shift
 :GETOPTS_END
   shift
@@ -135,12 +136,62 @@ GOTO :EOF
 :removeEnvironment
   echo Removing Sample Application Environment...
   rmdir /S /Q "%RUN_PATH%"
+  if exists "%iis%" %iis% delete site "AppDemo .NET REST Server"
   echo Done
   Exit /B 0
 GOTO :EOF
 
+:downloadWget
+  echo Verifying/Installing wget...
+  if exist "%RUN_PATH%\utils\wget.exe" GOTO :EOF
+  CALL :verifyUserAgreement "wget needs to be downloaded, do you wish to continue?"
+  mkdir "%RUN_PATH%\utils" 2>NUL
+  SET VB_DOWNLOAD_URL="https://eternallybored.org/misc/wget/wget-1.16.3-win32.zip"
+  SET VB_ZIP_LOCATION=%RUN_PATH%\wget.zip
+  SET VB_EXTRACT_LOCATION=%RUN_PATH%\utils
+  CALL cscript.exe "%SCRIPT_PATH%\downloadWget.vbs" >NUL
+  CALL cscript.exe "%SCRIPT_PATH%\unzip.vbs" >NUL
+  DEL "%RUN_PATH%\wget.zip" >NUL
+GOTO :EOF
+
+:downloadDependencies
+  echo Verifying/Installing unixutils...
+  if exist "%uunzip%" GOTO :EOF
+  mkdir "%RUN_PATH%\utils\unixutils" 2>NUL
+  %uwget% http://sourceforge.net/projects/unxutils/files/latest/download -O "%RUN_PATH%\unixutils.zip"
+  SET VB_ZIP_LOCATION=%RUN_PATH%\unixutils.zip
+  SET VB_EXTRACT_LOCATION=%RUN_PATH%\utils\unixutils
+  CALL cscript.exe "%SCRIPT_PATH%\unzip.vbs" >NUL
+  DEL "%RUN_PATH%\unixutils.zip">NUL
+GOTO :EOF
+
+:determineInstallPath
+  echo Do you wish to run a Java demo (Java (Tomcat) REST Server with All Agents), or .NET demo (with only the .NET agent)?
+  SET response=
+  SET INSTALL_PATH=false
+  :verifyInstallPathLoop
+  set /p response=Please input "J" for Java, or "N" for .NET:
+  if %response% == J SET INSTALL_PATH=Java
+  if %response% == N SET INSTALL_PATH=NET
+  if %INSTALL_PATH% == false GOTO :verifyInstallPathLoop
+GOTO :EOF
+
 :verifyJava
   if not exist "%JAVA_HOME%\bin\java.exe" echo Please make sure your JAVA_HOME environment variable is defined correctly & CALL :Exit
+GOTO :EOF
+
+:verifyNET
+  if not exist "%iis%" echo Please make sure you have IIS 7.0+ installed to continue & CALL :Exit
+GOTO :EOF
+
+:setupNET
+  mkdir "%RUN_PATH%\net" 2>NUL
+  if not exist "%RUN_PATH%\net\server.asp" mklink "%RUN_PATH%\net\server.asp" "%SCRIPT_PATH%\src\net\server.asp" >NUL
+  %iis% list sites /name:"AppDemo .NET REST Server" >NUL
+  if %ERRORLEVEL% == 1 (
+    echo Creating AppDemo .NET REST Instance...
+    %iis% add sites /name:"AppDemo .NET REST Server" /bindings:http/*:%BACKEND_PORT%: /physicalPath:%RUN_PATH%\net
+  )
 GOTO :EOF
 
 :doMySqlInstall
@@ -148,18 +199,48 @@ GOTO :EOF
   if exist "%RUN_PATH%\mysql\bin\mysqld.exe" echo Installed & GOTO :EOF
   CALL :verifyUserAgreement "An instance of MySql needs to be downloaded, do you wish to continue?"
   SET MS_DLOAD_FILE=mysql-5.6.23-win32.zip
-  if %OS% == 64 SET MS_DLOAD_FILE=mysql-5.6.23-winx64.zip
-  %uaria% "http://dev.mysql.com/get/Downloads/MySQL-5.6/%MS_DLOAD_FILE%" -d "%RUN_PATH%" -o "mysql.zip"
+  if %OSBIT% == 64 SET MS_DLOAD_FILE=mysql-5.6.23-winx64.zip
+  %uwget% "http://dev.mysql.com/get/Downloads/MySQL-5.6/%MS_DLOAD_FILE%" -O "%RUN_PATH%\mysql.zip"
   echo Unpacking MySql (this process may take a few minutes)...
   %uunzip% "%RUN_PATH%\mysql.zip" -d "%RUN_PATH%" >NUL
   DEL "%RUN_PATH%\mysql.zip">NUL
   for /D %%i in (%RUN_PATH%\mysql-*) do move %%i "%RUN_PATH%\mysql" >NUL
 GOTO :EOF
 
+:performTomcatDependencyDownload
+  %uwget% http://repo.maven.apache.org/maven2/%1 -x --cut-dirs=1 -nH -P "%RUN_PATH%\tomcatrest\repo"
+GOTO :EOF
+
 :doTomcatInstall
   echo Setting up Tomcat...
-  echo %JAVA_PORT% > "%APPD_TOMCAT_FILE%"
-  if not exist "%RUN_PATH%\tomcatrest\storefront.jar" mklink /D "%RUN_PATH%\tomcatrest" "%SCRIPT_PATH%\src\tomcat" >NUL
+  echo %BACKEND_PORT% > "%APPD_TOMCAT_FILE%"
+  mkdir %RUN_PATH%\tomcatrest\repo 2>NUL
+  mkdir %RUN_PATH%\tomcatrest\bin 2>NUL
+  if not exist "%RUN_PATH%\tomcatrest\repo\storefront.jar" copy "%SCRIPT_PATH%\repo\storefront.jar" "%RUN_PATH%\tomcatrest\repo\storefront.jar" >NUL
+  if not exist "%RUN_PATH%\tomcatrest\bin\webapp.bat" copy "%SCRIPT_PATH%\webapp.bat" "%RUN_PATH%\tomcatrest\bin\webapp.bat" >NUL
+  if exist "%RUN_PATH%\tomcatrest\repo\org\apache\tomcat\embed\tomcat-embed-core\7.0.57\tomcat-embed-core-7.0.57.jar" GOTO :EOF
+  CALL :performTomcatDependencyDownload org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar
+  CALL :performTomcatDependencyDownload org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar
+  CALL :performTomcatDependencyDownload org/glassfish/hk2/external/javax.inject/2.3.0-b05/javax.inject-2.3.0-b05.jar
+  CALL :performTomcatDependencyDownload org/glassfish/jersey/core/jersey-common/2.10.1/jersey-common-2.10.1.jar
+  CALL :performTomcatDependencyDownload javax/annotation/javax.annotation-api/1.2/javax.annotation-api-1.2.jar
+  CALL :performTomcatDependencyDownload org/glassfish/jersey/bundles/repackaged/jersey-guava/2.10.1/jersey-guava-2.10.1.jar
+  CALL :performTomcatDependencyDownload org/glassfish/hk2/hk2-api/2.3.0-b05/hk2-api-2.3.0-b05.jar
+  CALL :performTomcatDependencyDownload org/glassfish/hk2/hk2-utils/2.3.0-b05/hk2-utils-2.3.0-b05.jar
+  CALL :performTomcatDependencyDownload org/glassfish/hk2/external/aopalliance-repackaged/2.3.0-b05/aopalliance-repackaged-2.3.0-b05.jar
+  CALL :performTomcatDependencyDownload org/glassfish/hk2/hk2-locator/2.3.0-b05/hk2-locator-2.3.0-b05.jar
+  CALL :performTomcatDependencyDownload org/javassist/javassist/3.18.1-GA/javassist-3.18.1-GA.jar
+  CALL :performTomcatDependencyDownload org/glassfish/hk2/osgi-resource-locator/1.0.1/osgi-resource-locator-1.0.1.jar
+  CALL :performTomcatDependencyDownload org/glassfish/jersey/core/jersey-server/2.10.1/jersey-server-2.10.1.jar
+  CALL :performTomcatDependencyDownload org/glassfish/jersey/core/jersey-client/2.10.1/jersey-client-2.10.1.jar
+  CALL :performTomcatDependencyDownload javax/validation/validation-api/1.1.0.Final/validation-api-1.1.0.Final.jar
+  CALL :performTomcatDependencyDownload javax/ws/rs/javax.ws.rs-api/2.0/javax.ws.rs-api-2.0.jar
+  CALL :performTomcatDependencyDownload mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar
+  CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-logging-juli/7.0.57/tomcat-embed-logging-juli-7.0.57.jar
+  CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-jasper/7.0.57/tomcat-embed-jasper-7.0.57.jar
+  CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar
+  CALL :performTomcatDependencyDownload org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar
+  CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar
 GOTO :EOF
 
 :startTomcat
@@ -168,6 +249,12 @@ GOTO :EOF
   SET JAVA_OPTS=-javaagent:%RUN_PATH%\AppServerAgent\javaagent.jar
   echo Starting Tomcat...
   start "_AppDynamicsSampleApp_ Tomcat" /MIN "%RUN_PATH%\tomcatrest\bin\webapp.bat"
+GOTO :EOF
+
+:startNET
+  echo Starting IIS Instance
+  %iis% start site "AppDemo .NET REST Server"
+  if not %ERRORLEVEL% == 0 echo Unable to start IIS Instance, exiting. & CALL :Exit
 GOTO :EOF
 
 :startMySql
@@ -187,7 +274,7 @@ GOTO :EOF
   SET AGENT_URL=%~3
   echo Verifying/Install AppDynamics %AGENT_DIR%...
   if exist "%RUN_PATH%\%AGENT_DIR%\%AGENT_CHECK_FILE%" echo INSTALLED & GOTO :EOF
-  mkdir /S /Q %RUN_PATH%\%AGENT_DIR%
+  mkdir %RUN_PATH%\%AGENT_DIR% 2>NUL
   if not %LOGGED_IN% == true (
     GOTO :agentInstallLoopCheck
     :agentInstallLoop
@@ -203,13 +290,15 @@ GOTO :EOF
     if %ERRORLEVEL% == 1 GOTO :agentInstallLoop
     SET LOGGED_IN=true
   )
-  %uaria% --load-cookies "%RUN_PATH%\cookies" "%AGENT_URL%" -d "%RUN_PATH%\%AGENT_DIR%" -o "%AGENT_DIR%.zip"
+  %uwget% --load-cookies "%RUN_PATH%\cookies" "%AGENT_URL%" --no-check-certificate -O "%RUN_PATH%\%AGENT_DIR%.zip"
   echo Unpacking %AGENT_DIR% (this may take a few minutes)...
-  %uunzip% "%RUN_PATH%\%AGENT_DIR%\%AGENT_DIR%.zip" -d "%RUN_PATH%\%AGENT_DIR%" >NUL
-  DEL "%RUN_PATH%\%AGENT_DIR%\%AGENT_DIR%.zip"
+  %uunzip% "%RUN_PATH%\%AGENT_DIR%.zip" -d "%RUN_PATH%\%AGENT_DIR%" >NUL
+  DEL "%RUN_PATH%\%AGENT_DIR%.zip"
 GOTO :EOF
 
-:doAgentInstalls
+:doJavaAgentInstalls
+  CALL :agentInstall "MachineAgent" "machineagent.jar" "https://download.appdynamics.com/saas/public/archives/%MACHINE_AGENT_VERSION%/MachineAgent-%MACHINE_AGENT_VERSION%.zip"
+  CALL :agentInstall "DatabaseAgent" "db-agent.jar" "https://download.appdynamics.com/saas/public/archives/%DATABASE_AGENT_VERSION%/dbagent-%DATABASE_AGENT_VERSION%.zip"
   CALL :agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/%APPSERVER_AGENT_VERSION%/AppServerAgent-%APPSERVER_AGENT_VERSION%.zip"
 GOTO :EOF
 
@@ -221,13 +310,13 @@ GOTO :EOF
 :doNodeInstall
   if not exist "%NVM_DIR%\nvm.exe" (
     echo Downloading NVM...
-    %uaria% https://github.com/coreybutler/nvm-windows/releases/download/1.0.6/nvm-noinstall.zip -d "%RUN_PATH%" -o nvm.zip
+    %uwget% --no-check-certificate https://github.com/coreybutler/nvm-windows/releases/download/1.0.6/nvm-noinstall.zip -O "%RUN_PATH%\nvm.zip"
     %uunzip% "%RUN_PATH%\nvm.zip" -d "%NVM_DIR%" >NUL
     DEL "%RUN_PATH%\nvm.zip" 2>NUL
   )
   echo root: %NVM_HOME% > "%NVM_DIR%\settings.txt"
   echo path: %NVM_SYMLINK% >> "%NVM_DIR%\settings.txt"
-  echo arch: %OS% >> "%NVM_DIR%\settings.txt"
+  echo arch: %OSBIT% >> "%NVM_DIR%\settings.txt"
   %NVM_DIR%\nvm.exe install %NODE_VERSION%
   %NVM_DIR%\nvm.exe use %NODE_VERSION%
 
@@ -252,6 +341,16 @@ GOTO :EOF
   start "_AppDynamicsSampleApp_ Node" /MIN "%node%" "%RUN_PATH%\node\server.js"
 GOTO :EOF
 
+:startMachineAgent
+  CALL :writeControllerInfo "%RUN_PATH%\MachineAgent\conf\controller-info.xml"
+  start "_AppDynamicsSampleApp_ Machine Agent" /MIN "%JAVA_HOME%\bin\java.exe" -jar %RUN_PATH%\MachineAgent\machineagent.jar
+GOTO :EOF
+
+:startDatabaseAgent
+  CALL :writeControllerInfo "%RUN_PATH%\DatabaseAgent\conf\controller-info.xml"
+  start "_AppDynamicsSampleApp_ Database Agent" /MIN "%JAVA_HOME%\bin\java.exe" -Dappdynamics.controller.hostName=%CONTROLLER_ADDRESS% -Dappdynamics.controller.port=%CONTROLLER_PORT% -Dappdynamics.controller.ssl.enabled=%SSL% -Dappdynamics.agent.accountName=%ACCOUNT_NAME% -Dappdynamics.agent.accountAccessKey=%ACCOUNT_ACCESS_KEY% -jar %RUN_PATH%\DatabaseAgent\db-agent.jar
+GOTO :EOF
+
 :startup
   if %CONTROLLER_ADDRESS%==false echo No Controller Address Specified! & GOTO :usage
   if %CONTROLLER_PORT%==false echo No Controller Port Specified! & GOTO :usage
@@ -260,18 +359,32 @@ GOTO :EOF
     CALL :verifyUserAgreement "Do you agree to install all of the required dependencies if they do not exist and continue?"
     SET NOPROMPT=true
   )
-  CALL :verifyJava
-  CALL :doTomcatInstall
+  CALL :downloadWget
+  CALL :downloadDependencies
+  CALL :determineInstallPath
+  IF %INSTALL_PATH% == Java (
+    CALL :verifyJava
+    CALL :doTomcatInstall
+    CALL :doJavaAgentInstalls
+  ) else (
+    CALL :verifyNET
+    CALL :setupNET
+  )
   CALL :doMySqlInstall
-  CALL :doAgentInstalls
   CALL :startMySql
-  CALL :doNodeInstall
-  CALL :startTomcat
-  CALL :startNode
+  REM CALL :doNodeInstall
+  CALL :startMachineAgent
+  CALL :startDatabaseAgent
+  IF %INSTALL_PATH% == Java (
+    CALL :startTomcat
+  ) else (
+    CALL :startNET
+  )
+  REM CALL :startNode
 
   echo The AppDynamics Sample App Environment has been started.
   echo Please wait a few moments for the environment to initialize then:
-  echo Visit http://localhost:%NODE_PORT%
+  echo Visit http://localhost:%HTTP_PORT%
   echo Press any key to quit...
   Pause >NUL
 GOTO :EOF
@@ -283,6 +396,9 @@ GOTO :EOF
   DEL "%RUN_PATH%\status" 2>NUL
   DEL "%RUN_PATH%\varout" 2>NUL
   DEL "%APPD_TOMCAT_FILE%" 2>NUL
+  IF %INSTALL_PATH% == NET (
+    IF exist "%iis%" %iis% stop site "AppDemo .NET REST Server"
+  )
   taskkill /FI "WINDOWTITLE eq _AppDynamicsSampleApp_*" 1>NUL 2>&1
   taskkill /F /IM mysqld.exe 1>NUL 2>&1
   ENDLOCAL
