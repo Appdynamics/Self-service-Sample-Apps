@@ -2,11 +2,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.appdynamics.demo</groupId>
-    <artifactId>storefront</artifactId>
+    <artifactId>appdrestserver</artifactId>
     <packaging>jar</packaging>
     <version>1</version>
-    <name>AppDynamics Sample Application</name>
-    <url>http://maven.apache.org</url>
+    <name>AppDynamics REST Server</name>
+    <url>http://appdynamics.com</url>
     <properties>
         <tomcat.version>7.0.57</tomcat.version>
     </properties>
@@ -38,7 +38,7 @@
         </dependency>
     </dependencies>
     <build>
-        <finalName>storefront</finalName>
+        <finalName>appdrestserver</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.tomcat.maven</groupId>
@@ -67,8 +67,8 @@
                     <assembleDirectory>target</assembleDirectory>
                     <programs>
                         <program>
-                            <mainClass>com.appdynamics.demo.StoreFrontJersey</mainClass>
-                            <name>webapp</name>
+                            <mainClass>com.appdynamics.demo.AppDServer</mainClass>
+                            <name>AppDemoRESTServer</name>
                         </program>
                     </programs>
                 </configuration>

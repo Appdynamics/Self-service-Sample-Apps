@@ -2,18 +2,15 @@
 (function() {
   var app;
 
-  app = angular.module('storefront', ['ngRoute']);
+  app = angular.module('appdsampleapp', ['ngRoute']);
 
   app.config([
     '$routeProvider', '$httpProvider', function($routeProvider, $httpProvider) {
-      $routeProvider.when('/store', {
-        templateUrl: '/partials/store.html',
-        controller: 'StoreFrontController'
-      }).when('/admin', {
+      $routeProvider.when('/admin', {
         templateUrl: '/partials/admin.html',
         controller: 'AdminController'
       }).otherwise({
-        redirectTo: '/store'
+        redirectTo: '/admin'
       });
       return $httpProvider.interceptors.push([
         '$q', '$rootScope', function($q, $rootScope) {
@@ -52,77 +49,28 @@
     }
   ]);
 
-  app.controller('StoreFrontController', [
-    '$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
-      $scope.initialLoad = true;
-      $http.get('/retrieveAll').success(function(data) {
-        $scope.initialLoad = false;
-        return $scope.products = data;
-      }).error(function() {
-        return alert('Unable to retrieve product information!');
-      });
-      $scope.consumeProduct = function(product, $event) {
-        product.loading = true;
-        return $http.get('/update', {
-          method: 'GET',
-          params: {
-            id: product.id,
-            name: product.name,
-            stock: product.stock - 1 > 0 ? product.stock - 1 : 0
-          }
-        }).success(function(data) {
-          if (!data.length) {
-            alert('Unable to purchase product!');
-          } else {
-            product.stock = data[0].stock;
-          }
-          return product.loading = false;
-        }).error(function() {
-          alert('Unable to purchase product!');
-          return product.loading = false;
-        });
-      };
-      if ($rootScope.exceptions == null) {
-        $rootScope.exceptions = 0;
-      }
-      $scope.raising = false;
-      $scope.getExceptions = function() {
-        return $rootScope.exceptions;
-      };
-      return $scope.raiseException = function() {
-        $scope.raising = true;
-        return $http.get('/exception', {
-          method: 'GET'
-        }).success(function(data) {
-          $rootScope.exceptions++;
-          return $scope.raising = false;
-        }).error(function() {
-          alert('Unable to raise exception!');
-          return $scope.raising = false;
-        });
-      };
-    }
-  ]);
-
   app.controller('AdminController', [
-    '$scope', '$http', function($scope, $http) {
-      var setupProductUpdate;
+    '$scope', '$http', '$rootScope', '$timeout', function($scope, $http, $rootScope, $timeout) {
+      var activeLoop, performLoopGet, recurses, setupProductUpdate;
       $scope.products = [];
       setupProductUpdate = function(product) {
         product.loading = false;
         product.stock = parseInt(product.stock, 10);
-        product.save = function() {
+        product.save = function(decrement) {
+          var useStock;
           if (product.name === "" || !angular.isNumber(product.stock)) {
             return;
           }
+          useStock = decrement ? product.stock - 1 : product.stock;
           return $http.get('/update', {
             method: 'GET',
             params: {
               id: product.id,
               name: product.name,
-              stock: product.stock
+              stock: useStock < 0 ? 0 : useStock
             }
-          }).success(function() {
+          }).success(function(returnProduct) {
+            product.stock = parseInt(returnProduct[0].stock, 10);
             return product.lodaing = false;
           }).error(function() {
             alert('Unable to update the product!');
@@ -169,10 +117,37 @@
         }
         return results;
       });
+      $scope.looping = false;
+      $scope.recursive = 5;
+      activeLoop = 'Waiting...';
+      $scope.getActiveLoop = function() {
+        return activeLoop;
+      };
+      recurses = 0;
+      performLoopGet = function() {
+        activeLoop++;
+        return $http.get('/retrieveAll').success(function() {
+          if (activeLoop < recurses) {
+            return $timeout(performLoopGet, 500);
+          } else {
+            activeLoop = 'Done';
+            return $scope.looping = false;
+          }
+        }).error(function() {
+          activeLoop = 'Error';
+          return $scope.looping = false;
+        });
+      };
+      $scope.loopingGet = function() {
+        $scope.looping = true;
+        activeLoop = 0;
+        recurses = $scope.recursive;
+        return performLoopGet();
+      };
       $scope.newName = "";
       $scope.newStock = 0;
       $scope.loadingNew = false;
-      return $scope.addNew = function() {
+      $scope.addNew = function() {
         if ($scope.newName === "" || !angular.isNumber($scope.newStock)) {
           return;
         }
@@ -191,6 +166,44 @@
         }).error(function() {
           alert('Unable to add new product!');
           return $scope.loadingNew = false;
+        });
+      };
+      if ($rootScope.exceptions == null) {
+        $rootScope.exceptions = 0;
+      }
+      if ($rootScope.exceptionsJava == null) {
+        $rootScope.exceptionsJava = 0;
+      }
+      $scope.raising = false;
+      $scope.getExceptions = function() {
+        return $rootScope.exceptions;
+      };
+      $scope.raiseException = function() {
+        $scope.raising = true;
+        return $http.get('/exception', {
+          method: 'GET'
+        }).success(function(data) {
+          $rootScope.exceptions++;
+          return $scope.raising = false;
+        }).error(function() {
+          alert('Unable to raise exception!');
+          return $scope.raising = false;
+        });
+      };
+      $scope.raisingJava = false;
+      $scope.getJavaExceptions = function() {
+        return $rootScope.exceptionsJava;
+      };
+      return $scope.raiseJavaException = function() {
+        $scope.raisingJava = true;
+        return $http.get('/exceptionJava', {
+          method: 'GET'
+        }).success(function(data) {
+          $rootScope.exceptionsJava++;
+          return $scope.raisingJava = false;
+        }).error(function() {
+          alert('Unable to raise exception!');
+          return $scope.raisingJava = false;
         });
       };
     }

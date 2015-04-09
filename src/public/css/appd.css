@@ -10,3 +10,11 @@
 .caption h3 {
     text-decoration: underline;
 }
+
+.glyphicon {
+  padding-left: 5px;
+}
+
+.row {
+  margin-top: 5px;
+}

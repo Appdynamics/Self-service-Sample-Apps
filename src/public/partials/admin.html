@@ -1,4 +1,4 @@
-<h3>Product Management</h3>
+<h3>PUT/POST/DEL Operations</h3>
 
 <table class="table table-condensed table-striped">
     <thead>
@@ -10,7 +10,7 @@
                 Name
             </th>
             <th>
-                Remaining Stock
+                Remaining Queries
             </th>
             <th>
                 &nbsp;
@@ -29,11 +29,14 @@
                 <input type="number" ng-model="product.stock" />
             </td>
             <td>
+                <button type="button" ng-click="product.save(true)" ng-disabled="product.loading" class="btn btn-sm btn-primary" alt="Save">
+                    PUT (Decrease queries by 1)<span class="glyphicon glyphicon-minus-sign"></span>
+                </button>
                 <button type="button" ng-click="product.save()" ng-disabled="product.loading" class="btn btn-sm btn-primary" alt="Save">
-                    <span class="glyphicon glyphicon-floppy-save"></span>
+                    PUT<span class="glyphicon glyphicon-floppy-save"></span>
                 </button>
                 <button type="button" ng-click="product.delete()" ng-disabled="product.loading" class="btn btn-sm btn-danger" alt="Delete">
-                    <span class="glyphicon glyphicon-trash"></span>
+                    DEL<span class="glyphicon glyphicon-trash"></span>
                 </button>
             </td>
         </tr>
@@ -50,8 +53,31 @@
                 <input type="number" ng-model="newStock" />
             </td>
             <td>
-                <button type="button" class="btn btn-sm btn-primary" ng-click="addNew()" ng-disable="loadingNew"><span class="glyphicon glyphicon-plus-sign"></span></button>
+                <button type="button" class="btn btn-sm btn-primary" ng-click="addNew()" ng-disable="loadingNew">POST<span class="glyphicon glyphicon-plus-sign"></span></button>
             </td>
         </tr>
     </tfoot>
 </table>
+
+<h3>Recursive GET Call</h3>
+<div class="row">
+    <div class="col-sm-12">
+        Number of Calls: <input type="text" ng-model="recursive" /> <button type="button" class="btn btn-danger btn-sm" ng-click="loopingGet()" ng-disabled="looping">Run</button> (<span>Loop: <strong>{{getActiveLoop()}}</strong></span>)
+    </div>
+</div>
+
+<h3>Exception Operations</h3>
+
+<div class="row">
+    <div class="col-sm-12">
+      <button type="button" class="btn btn-danger btn-sm" ng-click="raiseException()" ng-disabled="raising">Raise Exception - Node</button>
+      (<span>Number of Exceptions Raised This Session: <strong>{{getExceptions()}}</strong></span>)
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12">
+      <button type="button" class="btn btn-danger btn-sm" ng-click="raiseJavaException()" ng-disabled="raisingJava">Raise Exception - Java</button>
+      (<span>Number of Exceptions Raised This Session: <strong>{{getJavaExceptions()}}</strong></span>)
+    </div>
+</div>

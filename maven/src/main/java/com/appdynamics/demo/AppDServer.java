@@ -10,11 +10,11 @@ import javax.servlet.ServletException;
 import java.io.*;
 import java.lang.Exception;
 
-public class StoreFrontJersey {
+public class AppDServer {
   final String tomcat_file = System.getenv().get("APPD_TOMCAT_FILE");
 
   public static void main(String[] args) throws LifecycleException, IOException, ServletException {
-    new StoreFrontJersey().start();
+    new AppDServer().start();
   }
 
   public void start() throws LifecycleException, IOException, ServletException {
@@ -38,7 +38,7 @@ public class StoreFrontJersey {
   }
 
   private ServletContainer resourceConfig() {
-    return new ServletContainer(new ResourceConfig(new StoreFrontApplication().getClasses()));
+    return new ServletContainer(new ResourceConfig(new AppDApplication().getClasses()));
   }
 
 }

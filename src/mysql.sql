@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS products (
   stock int NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 );
-INSERT INTO products (name, stock) SELECT 'Product A', 100 FROM DUAL WHERE NOT EXISTS (SELECT name FROM products WHERE name = 'Product A');
-INSERT INTO products (name, stock) SELECT 'Product B', 50 FROM DUAL WHERE NOT EXISTS (SELECT name FROM products WHERE name = 'Product B');
-INSERT INTO products (name, stock) SELECT 'Product C', 1000 FROM DUAL WHERE NOT EXISTS (SELECT name FROM products WHERE name = 'Product C');
-INSERT INTO products (name, stock) SELECT 'Product D', 10 FROM DUAL WHERE NOT EXISTS (SELECT name FROM products WHERE name = 'Product D');
+INSERT INTO products (name, stock) SELECT 'Initial Post A', 100 FROM DUAL WHERE NOT EXISTS (SELECT name FROM products WHERE name = 'Initial Post A');
+INSERT INTO products (name, stock) SELECT 'Initial Post B', 50 FROM DUAL WHERE NOT EXISTS (SELECT name FROM products WHERE name = 'Initial Post B');
+INSERT INTO products (name, stock) SELECT 'Initial Post C', 1000 FROM DUAL WHERE NOT EXISTS (SELECT name FROM products WHERE name = 'Initial Post C');
+INSERT INTO products (name, stock) SELECT 'Initial Post D', 10 FROM DUAL WHERE NOT EXISTS (SELECT name FROM products WHERE name = 'Initial Post D');

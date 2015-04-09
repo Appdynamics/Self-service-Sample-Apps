@@ -1,15 +1,5 @@
 #!/bin/bash
 
-# Configure these values on download.
-ACCOUNT_NAME=""
-ACCOUNT_ACCESS_KEY=""
-CONTROLLER_ADDRESS=false
-CONTROLLER_PORT=false
-SSL="false"
-MACHINE_AGENT_VERSION="4.0.1.0"
-DATABASE_AGENT_VERSION="4.0.1.0"
-APPSERVER_AGENT_VERSION="4.0.1.0"
-
 APPLICATION_NAME="TestApplication"
 JAVA_PORT=8887
 NODE_PORT=8888
@@ -17,6 +7,14 @@ MYSQL_PORT=8889
 AXIS_VERSION="1.6.2"
 ANT_VERSION="1.9.4"
 NODE_VERSION="0.10.33"
+MACHINE_AGENT_VERSION="4.0.1.0"
+DATABASE_AGENT_VERSION="4.0.1.0"
+APPSERVER_AGENT_VERSION="4.0.1.0"
+SSL="false"
+ACCOUNT_NAME=""
+ACCOUNT_ACCESS_KEY=""
+CONTROLLER_ADDRESS=false
+CONTROLLER_PORT=false
 NOPROMPT=false
 PROMPT_EACH_REQUEST=false
 TIMEOUT=300 #5 Minutes
@@ -60,7 +58,7 @@ usage() {
 removeEnvironment() {
   echo "Removing Sample Application environment..."
   rm -rf "$RUN_PATH"
-  usedel appdmysql >2/dev/null >/dev/null
+  userdel appdmysql 2>/dev/null >/dev/null
   echo "Done"
   exit 0
 }
@@ -245,8 +243,8 @@ doTomcatInstall() {
   echo "$JAVA_PORT" > "$APPD_TOMCAT_FILE"
   mkdir -p $RUN_PATH/tomcatrest/repo
   mkdir -p $RUN_PATH/tomcatrest/bin
-  cp "$SCRIPT_PATH/repo/storefront.jar" "$RUN_PATH/tomcatrest/repo/storefront.jar" >/dev/null
-  cp "$SCRIPT_PATH/webapp.sh" "$RUN_PATH/tomcatrest/bin/webapp.sh" >/dev/null
+  cp "$SCRIPT_PATH/repo/appdrestserver.jar" "$RUN_PATH/tomcatrest/repo/appdrestserver.jar" >/dev/null
+  cp "$SCRIPT_PATH/AppDemoRESTServer.sh" "$RUN_PATH/tomcatrest/bin/AppDemoRESTServer.sh" >/dev/null
   if [ -f "$RUN_PATH/tomcatrest/repo/org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar" ]; then echo "Installed"; return 0; fi
   performTomcatDependencyDownload "org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar"
   performTomcatDependencyDownload "org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar"
@@ -276,7 +274,7 @@ startTomcat() {
   writeControllerInfo "$RUN_PATH/AppServerAgent/conf/controller-info.xml" "JavaServer" "JavaServer01"
   writeControllerInfo "$RUN_PATH/AppServerAgent/ver$APPSERVER_AGENT_VERSION/conf/controller-info.xml" "JavaServer" "JavaServer01"
   export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
-  startProcess "Tomcat Server (Port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/webapp.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR: Failed ProtocolHandler"
+  startProcess "Tomcat Server (Port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/AppDemoRESTServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR: Failed ProtocolHandler"
 }
 
 setupNodeNvm() {

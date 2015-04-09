@@ -13,8 +13,8 @@ import java.io.FileReader;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
-@Path("/storefront")
-public class StoreFrontRX {
+@Path("/appdserver")
+public class AppDREST {
   final String mysql_port_file = System.getenv().get("APPD_MYSQL_PORT_FILE");
 
   private Connection getConnection() throws Exception {
@@ -24,6 +24,15 @@ public class StoreFrontRX {
       port = bufferedReader.readLine().trim();
       bufferedReader.close();
     } catch (Exception exception) {}
+
+    int rand = (int) Math.ceil(Math.random()*100);
+    //Lets inject a longer load for a random amount of time
+    if (rand > 90) {
+      int loops = (int) Math.ceil(Math.random()*10);
+      for(int x = 0; x < loops; ++x) {
+        Thread.sleep(1000);
+      }
+    }
 
     Class.forName("com.mysql.jdbc.Driver").newInstance();
     return DriverManager
@@ -98,6 +107,12 @@ public class StoreFrontRX {
         getStatement("SELECT * FROM products")
       )
     );
+  }
+
+  @GET
+  @Path("/exception")
+  public void throwException() throws Exception {
+    throw new Exception("Forced Exception");
   }
 
   @GET

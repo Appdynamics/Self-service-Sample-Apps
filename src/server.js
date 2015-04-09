@@ -7,7 +7,7 @@ var java = 8887;
 
 function setupStoreFrontCall(method, nodePath, apiRequest) {
   server.get('/' + nodePath, function (serverRequest, response) {
-    var url = 'http://localhost:' + java + '/rest/storefront' + apiRequest;
+    var url = 'http://localhost:' + java + '/rest/appdserver' + apiRequest;
     var query = {};
     for (var key in serverRequest.query) {
       if (serverRequest.query.hasOwnProperty(key)) {
@@ -52,6 +52,7 @@ setupStoreFrontCall('GET', 'retrieve', '');
 setupStoreFrontCall('POST', 'add', '');
 setupStoreFrontCall('PUT', 'update', '/put');
 setupStoreFrontCall('DELETE', 'delete', '/del');
+setupStoreFrontCall('GET', 'exceptionJava', '/exception');
 
 domain.on('error', function (err) {
 });

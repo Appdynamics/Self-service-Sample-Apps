@@ -1,17 +1,14 @@
-app = angular.module 'storefront', ['ngRoute']
+app = angular.module 'appdsampleapp', ['ngRoute']
 
 app.config [
   '$routeProvider', '$httpProvider'
   ($routeProvider, $httpProvider) ->
     $routeProvider
-      .when '/store',
-        templateUrl: '/partials/store.html'
-        controller: 'StoreFrontController'
       .when '/admin',
         templateUrl: '/partials/admin.html'
         controller: 'AdminController'
       .otherwise
-        redirectTo: '/store'
+        redirectTo: '/admin'
 
     $httpProvider.interceptors.push [
       '$q', '$rootScope',
@@ -37,73 +34,26 @@ app.config [
     ]
 ]
 
-app.controller 'StoreFrontController', [
-  '$scope', '$http', '$rootScope'
-  ($scope, $http, $rootScope) ->
-    $scope.initialLoad = true
-
-    $http.get '/retrieveAll'
-      .success (data) ->
-        $scope.initialLoad = false
-        $scope.products = data
-      .error ->
-        alert 'Unable to retrieve product information!'
-
-    $scope.consumeProduct = (product, $event) ->
-      product.loading = true
-      $http.get '/update',
-        method: 'GET'
-        params:
-          id: product.id
-          name: product.name
-          stock: if product.stock - 1 > 0 then product.stock - 1 else 0
-      .success (data) ->
-        if not data.length
-          alert 'Unable to purchase product!'
-        else
-          product.stock = data[0].stock
-        product.loading = false
-      .error ->
-        alert 'Unable to purchase product!'
-        product.loading = false
-
-    if not $rootScope.exceptions?
-      $rootScope.exceptions = 0
-
-    $scope.raising = false
-    $scope.getExceptions = ->
-      $rootScope.exceptions
-    $scope.raiseException = ->
-      $scope.raising = true
-      $http.get '/exception',
-        method: 'GET'
-      .success (data) ->
-        $rootScope.exceptions++
-        $scope.raising = false
-      .error ->
-        alert 'Unable to raise exception!'
-        $scope.raising = false
-
-]
-
 app.controller 'AdminController', [
-  '$scope', '$http'
-  ($scope, $http) ->
+  '$scope', '$http', '$rootScope', '$timeout'
+  ($scope, $http, $rootScope, $timeout) ->
     $scope.products = []
 
     setupProductUpdate = (product) ->
       product.loading = false
       product.stock = parseInt product.stock, 10
-      product.save = ->
+      product.save = (decrement) ->
         if product.name == "" or not angular.isNumber product.stock
           return
+        useStock = if decrement then product.stock - 1 else product.stock
         $http.get '/update',
           method: 'GET'
           params:
             id: product.id
             name: product.name
-            stock: product.stock
-        .success ->
+            stock: if useStock < 0 then 0 else useStock
+        .success (returnProduct) ->
+          product.stock = parseInt returnProduct[0].stock, 10
           product.lodaing = false
         .error ->
           alert 'Unable to update the product!'
@@ -131,6 +81,32 @@ app.controller 'AdminController', [
           if not data.hasOwnProperty product then continue
           setupProductUpdate data[product]
 
+    $scope.looping = false
+    $scope.recursive = 5
+    activeLoop = 'Waiting...'
+    $scope.getActiveLoop = ->
+      activeLoop
+    recurses = 0
+
+    performLoopGet = ->
+      activeLoop++
+      $http.get '/retrieveAll'
+        .success ->
+          if activeLoop < recurses
+            $timeout performLoopGet, 500
+          else
+            activeLoop = 'Done'
+            $scope.looping = false
+        .error ->
+          activeLoop = 'Error'
+          $scope.looping = false
+
+    $scope.loopingGet = ->
+      $scope.looping = true
+      activeLoop = 0
+      recurses = $scope.recursive
+      performLoopGet()
+
     $scope.newName = ""
     $scope.newStock = 0
 
@@ -153,6 +129,37 @@ app.controller 'AdminController', [
         alert 'Unable to add new product!'
         $scope.loadingNew = false
 
+    if not $rootScope.exceptions?
+      $rootScope.exceptions = 0
+    if not $rootScope.exceptionsJava?
+      $rootScope.exceptionsJava = 0
+
+    $scope.raising = false
+    $scope.getExceptions = ->
+      $rootScope.exceptions
+    $scope.raiseException = ->
+      $scope.raising = true
+      $http.get '/exception',
+        method: 'GET'
+      .success (data) ->
+        $rootScope.exceptions++
+        $scope.raising = false
+      .error ->
+        alert 'Unable to raise exception!'
+        $scope.raising = false
+    $scope.raisingJava = false
+    $scope.getJavaExceptions = ->
+      $rootScope.exceptionsJava
+    $scope.raiseJavaException = ->
+      $scope.raisingJava = true
+      $http.get '/exceptionJava',
+        method: 'GET'
+      .success (data) ->
+        $rootScope.exceptionsJava++
+        $scope.raisingJava = false
+      .error ->
+        alert 'Unable to raise exception!'
+        $scope.raisingJava = false
 ]
 
 app.directive 'adLoader', [

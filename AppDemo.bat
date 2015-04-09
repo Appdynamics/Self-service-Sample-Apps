@@ -3,17 +3,6 @@
 TITLE AppDynamicsSampleApp
 
 SETLOCAL
-
-REM Configure these values on download.
-SET ACCOUNT_NAME=
-SET ACCOUNT_ACCESS_KEY=
-SET CONTROLLER_ADDRESS=false
-SET CONTROLLER_PORT=false
-SET SSL=false
-SET MACHINE_AGENT_VERSION=4.0.1.0
-SET DATABASE_AGENT_VERSION=4.0.1.0
-SET APPSERVER_AGENT_VERSION=4.0.1.0
-
 SET APPLICATION_NAME=TestApplication
 SET BACKEND_PORT=8887
 SET HTTP_PORT=8888
@@ -21,6 +10,14 @@ SET MYSQL_PORT=8889
 SET AXIS_VERSION=1.6.2
 SET ANT_VERSION=1.9.4
 SET NODE_VERSION=0.10.33
+SET MACHINE_AGENT_VERSION=4.0.1.0
+SET DATABASE_AGENT_VERSION=4.0.1.0
+SET APPSERVER_AGENT_VERSION=4.0.1.0
+SET SSL=false
+SET ACCOUNT_NAME=
+SET ACCOUNT_ACCESS_KEY=
+SET CONTROLLER_ADDRESS=false
+SET CONTROLLER_PORT=false
 SET NOPROMPT=false
 SET PROMPT_EACH_REQUEST=false
 SET TIMEOUT=300 #5 Minutes
@@ -45,6 +42,8 @@ SET ANT_HOME=%RUN_PATH%/%ANT_DIR%
 SET APPD_MYSQL_PORT_FILE=%RUN_PATH%\mysql\mysql.port
 SET APPD_TOMCAT_FILE=%RUN_PATH%\tomcat
 
+SET INSTALL_PATH=false
+
 mkdir "%RUN_PATH%" 2>NUL
 
 SET ucat="%RUN_PATH%\utils\unixutils\usr\local\wbin\cat.exe"
@@ -58,6 +57,9 @@ SET node="%NODE_DIR%\node.exe"
 SET npm=%node% "%NODE_PATH%\npm\bin\npm-cli.js"
 
 SET iis="%windir%\system32\inetsrv\AppCmd.exe"
+
+net session >nul 2>&1
+if not %errorLevel% == 0 echo Please re-run this script with administrative permissions! & GOTO :Exit
 
 if (%1)==() GOTO :startup
 :GETOPTS
@@ -219,8 +221,8 @@ GOTO :EOF
   echo %BACKEND_PORT% > "%APPD_TOMCAT_FILE%"
   mkdir %RUN_PATH%\tomcatrest\repo 2>NUL
   mkdir %RUN_PATH%\tomcatrest\bin 2>NUL
-  if not exist "%RUN_PATH%\tomcatrest\repo\storefront.jar" copy "%SCRIPT_PATH%\repo\storefront.jar" "%RUN_PATH%\tomcatrest\repo\storefront.jar" >NUL
-  if not exist "%RUN_PATH%\tomcatrest\bin\webapp.bat" copy "%SCRIPT_PATH%\webapp.bat" "%RUN_PATH%\tomcatrest\bin\webapp.bat" >NUL
+  if not exist "%RUN_PATH%\tomcatrest\repo\appdrestserver.jar" copy "%SCRIPT_PATH%\repo\appdrestserver.jar" "%RUN_PATH%\tomcatrest\repo\appdrestserver.jar" >NUL
+  if not exist "%RUN_PATH%\tomcatrest\bin\AppDemoRESTServer.bat" copy "%SCRIPT_PATH%\AppDemoRESTServer.bat" "%RUN_PATH%\tomcatrest\bin\AppDemoRESTServer.bat" >NUL
   if exist "%RUN_PATH%\tomcatrest\repo\org\apache\tomcat\embed\tomcat-embed-core\7.0.57\tomcat-embed-core-7.0.57.jar" GOTO :EOF
   CALL :performTomcatDependencyDownload org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar
   CALL :performTomcatDependencyDownload org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar
@@ -251,7 +253,7 @@ GOTO :EOF
   CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\ver%APPSERVER_AGENT_VERSION%\conf\controller-info.xml" "JavaServer" "JavaServer01"
   SET JAVA_OPTS=-javaagent:%RUN_PATH%\AppServerAgent\javaagent.jar
   echo Starting Tomcat...
-  start "_AppDynamicsSampleApp_ Tomcat" /MIN "%RUN_PATH%\tomcatrest\bin\webapp.bat"
+  start "_AppDynamicsSampleApp_ Tomcat" /MIN "%RUN_PATH%\tomcatrest\bin\AppDemoRESTServer.bat"
 GOTO :EOF
 
 :startNET
@@ -345,11 +347,13 @@ GOTO :EOF
 GOTO :EOF
 
 :startMachineAgent
+  echo Starting Machine Agent...
   CALL :writeControllerInfo "%RUN_PATH%\MachineAgent\conf\controller-info.xml"
   start "_AppDynamicsSampleApp_ Machine Agent" /MIN "%JAVA_HOME%\bin\java.exe" -jar %RUN_PATH%\MachineAgent\machineagent.jar
 GOTO :EOF
 
 :startDatabaseAgent
+  echo Starting Database Agent...
   CALL :writeControllerInfo "%RUN_PATH%\DatabaseAgent\conf\controller-info.xml"
   start "_AppDynamicsSampleApp_ Database Agent" /MIN "%JAVA_HOME%\bin\java.exe" -Dappdynamics.controller.hostName=%CONTROLLER_ADDRESS% -Dappdynamics.controller.port=%CONTROLLER_PORT% -Dappdynamics.controller.ssl.enabled=%SSL% -Dappdynamics.agent.accountName=%ACCOUNT_NAME% -Dappdynamics.agent.accountAccessKey=%ACCOUNT_ACCESS_KEY% -jar %RUN_PATH%\DatabaseAgent\db-agent.jar
 GOTO :EOF
@@ -375,7 +379,7 @@ GOTO :EOF
   )
   CALL :doMySqlInstall
   CALL :startMySql
-  REM CALL :doNodeInstall
+  CALL :doNodeInstall
   CALL :startMachineAgent
   CALL :startDatabaseAgent
   IF %INSTALL_PATH% == Java (
@@ -383,7 +387,7 @@ GOTO :EOF
   ) else (
     CALL :startNET
   )
-  REM CALL :startNode
+  CALL :startNode
 
   echo The AppDynamics Sample App Environment has been started.
   echo Please wait a few moments for the environment to initialize then:
@@ -416,9 +420,7 @@ GOTO :EOF
   pushd "%temp%"
   set "yes="
   copy nul ExitBatchYes.txt >nul
-  for /f "delims=(/ tokens=2" %%Y in (
-    '"copy /-y nul ExitBatchYes.txt <nul"'
-  ) do if not defined yes set "yes=%%Y"
+  for /f "delims=(/ tokens=2" %%Y in ('"copy /-y nul ExitBatchYes.txt <nul"') do if not defined yes set "yes=%%Y"
   echo %yes%>ExitBatchYes.txt
   popd
 GOTO :EOF
