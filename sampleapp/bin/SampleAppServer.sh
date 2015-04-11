@@ -14,12 +14,26 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ----------------------------------------------------------------------------
-
-#   Copyright (c) 2001-2002 The Apache Software Foundation.  All rights
+#
+#   Copyright (c) 2001-2006 The Apache Software Foundation.  All rights
 #   reserved.
 
-BASEDIR=`dirname $0`/..
-BASEDIR=`(cd "$BASEDIR"; pwd)`
+
+# resolve links - $0 may be a softlink
+PRG="$0"
+
+while [ -h "$PRG" ]; do
+  ls=`ls -ld "$PRG"`
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '/.*' > /dev/null; then
+    PRG="$link"
+  else
+    PRG=`dirname "$PRG"`/"$link"
+  fi
+done
+
+PRGDIR=`dirname "$PRG"`
+BASEDIR=`cd "$PRGDIR/.." >/dev/null; pwd`
 
 
 
@@ -67,8 +81,8 @@ if [ -z "$JAVACMD" ] ; then
 fi
 
 if [ ! -x "$JAVACMD" ] ; then
-  echo "Error: JAVA_HOME is not defined correctly."
-  echo "  We cannot execute $JAVACMD"
+  echo "Error: JAVA_HOME is not defined correctly." 1>&2
+  echo "  We cannot execute $JAVACMD" 1>&2
   exit 1
 fi
 
@@ -77,8 +91,7 @@ then
   REPO="$BASEDIR"/repo
 fi
 
-CLASSPATH=$CLASSPATH_PREFIX:"$BASEDIR"/etc:"$REPO"/org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar:"$REPO"/org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar:"$REPO"/org/glassfish/hk2/external/javax.inject/2.3.0-b05/javax.inject-2.3.0-b05.jar:"$REPO"/org/glassfish/jersey/core/jersey-common/2.10.1/jersey-common-2.10.1.jar:"$REPO"/javax/annotation/javax.annotation-api/1.2/javax.annotation-api-1.2.jar:"$REPO"/org/glassfish/jersey/bundles/repackaged/jersey-guava/2.10.1/jersey-guava-2.10.1.jar:"$REPO"/org/glassfish/hk2/hk2-api/2.3.0-b05/hk2-api-2.3.0-b05.jar:"$REPO"/org/glassfish/hk2/hk2-utils/2.3.0-b05/hk2-utils-2.3.0-b05.jar:"$REPO"/org/glassfish/hk2/external/aopalliance-repackaged/2.3.0-b05/aopalliance-repackaged-2.3.0-b05.jar:"$REPO"/org/glassfish/hk2/hk2-locator/2.3.0-b05/hk2-locator-2.3.0-b05.jar:"$REPO"/org/javassist/javassist/3.18.1-GA/javassist-3.18.1-GA.jar:"$REPO"/org/glassfish/hk2/osgi-resource-locator/1.0.1/osgi-resource-locator-1.0.1.jar:"$REPO"/org/glassfish/jersey/core/jersey-server/2.10.1/jersey-server-2.10.1.jar:"$REPO"/org/glassfish/jersey/core/jersey-client/2.10.1/jersey-client-2.10.1.jar:"$REPO"/javax/validation/validation-api/1.1.0.Final/validation-api-1.1.0.Final.jar:"$REPO"/javax/ws/rs/javax.ws.rs-api/2.0/javax.ws.rs-api-2.0.jar:"$REPO"/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar:"$REPO"/org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar:"$REPO"/org/apache/tomcat/embed/tomcat-embed-logging-juli/7.0.57/tomcat-embed-logging-juli-7.0.57.jar:"$REPO"/org/apache/tomcat/embed/tomcat-embed-jasper/7.0.57/tomcat-embed-jasper-7.0.57.jar:"$REPO"/org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar:"$REPO"/org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar:"$REPO"/appdrestserver.jar
-EXTRA_JVM_ARGUMENTS=""
+CLASSPATH=$CLASSPATH_PREFIX:"$REPO"/org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar:"$REPO"/org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar:"$REPO"/org/glassfish/hk2/external/javax.inject/2.3.0-b05/javax.inject-2.3.0-b05.jar:"$REPO"/org/glassfish/jersey/core/jersey-common/2.10.1/jersey-common-2.10.1.jar:"$REPO"/javax/annotation/javax.annotation-api/1.2/javax.annotation-api-1.2.jar:"$REPO"/org/glassfish/jersey/bundles/repackaged/jersey-guava/2.10.1/jersey-guava-2.10.1.jar:"$REPO"/org/glassfish/hk2/hk2-api/2.3.0-b05/hk2-api-2.3.0-b05.jar:"$REPO"/org/glassfish/hk2/hk2-utils/2.3.0-b05/hk2-utils-2.3.0-b05.jar:"$REPO"/org/glassfish/hk2/external/aopalliance-repackaged/2.3.0-b05/aopalliance-repackaged-2.3.0-b05.jar:"$REPO"/org/glassfish/hk2/hk2-locator/2.3.0-b05/hk2-locator-2.3.0-b05.jar:"$REPO"/org/javassist/javassist/3.18.1-GA/javassist-3.18.1-GA.jar:"$REPO"/org/glassfish/hk2/osgi-resource-locator/1.0.1/osgi-resource-locator-1.0.1.jar:"$REPO"/org/glassfish/jersey/core/jersey-server/2.10.1/jersey-server-2.10.1.jar:"$REPO"/org/glassfish/jersey/core/jersey-client/2.10.1/jersey-client-2.10.1.jar:"$REPO"/javax/validation/validation-api/1.1.0.Final/validation-api-1.1.0.Final.jar:"$REPO"/javax/ws/rs/javax.ws.rs-api/2.0/javax.ws.rs-api-2.0.jar:"$REPO"/mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar:"$REPO"/org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar:"$REPO"/org/apache/tomcat/embed/tomcat-embed-logging-juli/7.0.57/tomcat-embed-logging-juli-7.0.57.jar:"$REPO"/org/apache/tomcat/embed/tomcat-embed-jasper/7.0.57/tomcat-embed-jasper-7.0.57.jar:"$REPO"/org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar:"$REPO"/org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar:"$REPO"/com/appdynamics/demo/sampleapp/1/sampleapp-1.jar
 
 # For Cygwin, switch paths to Windows format before running java
 if $cygwin; then
@@ -89,12 +102,12 @@ if $cygwin; then
   [ -n "$REPO" ] && REPO=`cygpath --path --windows "$REPO"`
 fi
 
-exec "$JAVACMD" $JAVA_OPTS \
-  $EXTRA_JVM_ARGUMENTS \
+exec "$JAVACMD" $JAVA_OPTS  \
   -classpath "$CLASSPATH" \
-  -Dapp.name="AppDemoRESTServer" \
+  -Dapp.name="SampleAppServer" \
   -Dapp.pid="$$" \
   -Dapp.repo="$REPO" \
+  -Dapp.home="$BASEDIR" \
   -Dbasedir="$BASEDIR" \
-  com.appdynamics.demo.AppDServer \
+  com.appdynamics.demo.SampleAppServer \
   "$@"

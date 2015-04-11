@@ -3,6 +3,17 @@
 TITLE AppDynamicsSampleApp
 
 SETLOCAL
+
+REM Configure these values on download.
+SET ACCOUNT_NAME=
+SET ACCOUNT_ACCESS_KEY=
+SET CONTROLLER_ADDRESS=false
+SET CONTROLLER_PORT=false
+SET SSL=false
+SET MACHINE_AGENT_VERSION=4.0.1.0
+SET DATABASE_AGENT_VERSION=4.0.1.0
+SET APPSERVER_AGENT_VERSION=4.0.1.0
+
 SET APPLICATION_NAME=TestApplication
 SET BACKEND_PORT=8887
 SET HTTP_PORT=8888
@@ -10,14 +21,6 @@ SET MYSQL_PORT=8889
 SET AXIS_VERSION=1.6.2
 SET ANT_VERSION=1.9.4
 SET NODE_VERSION=0.10.33
-SET MACHINE_AGENT_VERSION=4.0.1.0
-SET DATABASE_AGENT_VERSION=4.0.1.0
-SET APPSERVER_AGENT_VERSION=4.0.1.0
-SET SSL=false
-SET ACCOUNT_NAME=
-SET ACCOUNT_ACCESS_KEY=
-SET CONTROLLER_ADDRESS=false
-SET CONTROLLER_PORT=false
 SET NOPROMPT=false
 SET PROMPT_EACH_REQUEST=false
 SET TIMEOUT=300 #5 Minutes
@@ -28,7 +31,7 @@ reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" 
 SET LOGGED_IN=false
 SET SCRIPT_PATH=%~dp0
 SET SCRIPT_PATH=%SCRIPT_PATH:~0,-1%
-SET RUN_PATH=C:\AppDynamics
+SET RUN_PATH=C:\AppDynamicsSampleApp
 SET NVM_DIR=%RUN_PATH%\.nvm
 SET NVM_HOME=%NVM_DIR%
 SET NVM_SYMLINK=C:\Program Files\nodejs
@@ -46,17 +49,11 @@ SET INSTALL_PATH=false
 
 mkdir "%RUN_PATH%" 2>NUL
 
-SET ucat="%RUN_PATH%\utils\unixutils\usr\local\wbin\cat.exe"
-SET uprintf="%RUN_PATH%\utils\unixutils\usr\local\wbin\printf.exe"
-SET uunzip="%RUN_PATH%\utils\unixutils\usr\local\wbin\unzip.exe"
-SET used="%RUN_PATH%\utils\unixutils\usr\local\wbin\sed.exe"
 SET ugrep="%RUN_PATH%\utils\unixutils\usr\local\wbin\grep.exe"
 SET uwget="%RUN_PATH%\utils\wget.exe"
 
 SET node="%NODE_DIR%\node.exe"
 SET npm=%node% "%NODE_PATH%\npm\bin\npm-cli.js"
-
-SET iis="%windir%\system32\inetsrv\AppCmd.exe"
 
 net session >nul 2>&1
 if not %errorLevel% == 0 echo Please re-run this script with administrative permissions! & GOTO :Exit
@@ -100,14 +97,14 @@ CALL :startup
 GOTO :Exit
 
 :about
-  %ucat% "%SCRIPT_PATH%\about"
+  type "%SCRIPT_PATH%\about"
   echo.
 GOTO :EOF
 
 :usage
   CALL :about
-  %uprintf% "%%s" "usage: AppDemo.bat "
-  %ucat% "%SCRIPT_PATH%\usage"
+  echo usage: AppDemo.bat
+  type "%SCRIPT_PATH%\usage"
   Exit /B 0
 GOTO :EOF
 
@@ -125,25 +122,30 @@ GOTO :EOF
   SET WRITE_FILE=%~1
   SET TIER_NAME=%~2
   SET NODE_NAME=%~3
-  %uprintf% "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > "%WRITE_FILE%"
-  %uprintf% "<controller-info>" >> "%WRITE_FILE%"
-	%uprintf% "<controller-host>%%s</controller-host>" %CONTROLLER_ADDRESS% >> "%WRITE_FILE%"
-	%uprintf% "<controller-port>%%s</controller-port>" %CONTROLLER_PORT% >> "%WRITE_FILE%"
-	%uprintf% "<controller-ssl-enabled>%%s</controller-ssl-enabled>" %SSL% >> "%WRITE_FILE%"
-	%uprintf% "<account-name>%%s</account-name>" %ACCOUNT_NAME% >> "%WRITE_FILE%"
-	%uprintf% "<account-access-key>%%s</account-access-key>" %ACCOUNT_ACCESS_KEY% >> "%WRITE_FILE%"
-	%uprintf% "<application-name>%%s</application-name>" %APPLICATION_NAME% >> "%WRITE_FILE%"
-	%uprintf% "<tier-name>%%s</tier-name>" %TIER_NAME% >> "%WRITE_FILE%"
-	%uprintf% "<node-name>%%s</node-name>" %NODE_NAME% >> "%WRITE_FILE%"
-	%uprintf% "</controller-info>" >> "%WRITE_FILE%"
+  echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > "%WRITE_FILE%"
+  echo "<controller-info>" >> "%WRITE_FILE%"
+	echo "<controller-host>%CONTROLLER_ADDRESS%</controller-host>" >> "%WRITE_FILE%"
+	echo "<controller-port>%CONTROLLER_PORT%</controller-port>"  >> "%WRITE_FILE%"
+	echo "<controller-ssl-enabled>%SSL%</controller-ssl-enabled>" >> "%WRITE_FILE%"
+	echo "<account-name>%ACCOUNT_NAME%</account-name>" >> "%WRITE_FILE%"
+	echo "<account-access-key>%ACCOUNT_ACCESS_KEY%</account-access-key>" >> "%WRITE_FILE%"
+	echo "<application-name>%APPLICATION_NAME%</application-name>" >> "%WRITE_FILE%"
+	echo "<tier-name>%TIER_NAME%</tier-name>" >> "%WRITE_FILE%"
+	echo "<node-name>%NODE_NAME%</node-name>" >> "%WRITE_FILE%"
+	echo "</controller-info>" >> "%WRITE_FILE%"
 GOTO :EOF
 
 :removeEnvironment
   echo Removing Sample Application Environment...
   rmdir /S /Q "%RUN_PATH%"
-  if exists "%iis%" %iis% delete site "AppDemo .NET REST Server"
   echo Done
   Exit /B 0
+GOTO :EOF
+
+:performUnzip
+  SET VB_ZIP_LOCATION=%~1
+  SET VB_EXTRACT_LOCATION=%~2
+  CALL cscript.exe "%SCRIPT_PATH%\vbs\unzip.vbs" >NUL
 GOTO :EOF
 
 :downloadWget
@@ -154,62 +156,13 @@ GOTO :EOF
   SET VB_DOWNLOAD_URL="https://eternallybored.org/misc/wget/wget-1.16.3-win32.zip"
   SET VB_ZIP_LOCATION=%RUN_PATH%\wget.zip
   SET VB_EXTRACT_LOCATION=%RUN_PATH%\utils
-  CALL cscript.exe "%SCRIPT_PATH%\downloadWget.vbs" >NUL
-  CALL cscript.exe "%SCRIPT_PATH%\unzip.vbs" >NUL
+  CALL cscript.exe "%SCRIPT_PATH%\vbs\download.vbs" >NUL
+  CALL cscript.exe "%SCRIPT_PATH%\vbs\unzip.vbs" >NUL
   DEL "%RUN_PATH%\wget.zip" >NUL
 GOTO :EOF
 
-:downloadDependencies
-  echo Verifying/Installing unixutils...
-  if exist "%uunzip%" GOTO :EOF
-  mkdir "%RUN_PATH%\utils\unixutils" 2>NUL
-  %uwget% http://sourceforge.net/projects/unxutils/files/latest/download -O "%RUN_PATH%\unixutils.zip"
-  SET VB_ZIP_LOCATION=%RUN_PATH%\unixutils.zip
-  SET VB_EXTRACT_LOCATION=%RUN_PATH%\utils\unixutils
-  CALL cscript.exe "%SCRIPT_PATH%\unzip.vbs" >NUL
-  DEL "%RUN_PATH%\unixutils.zip">NUL
-GOTO :EOF
-
-:determineInstallPath
-  echo Do you wish to run a Java demo (Java (Tomcat) REST Server with All Agents), or .NET demo (with only the .NET agent)?
-  SET response=
-  SET INSTALL_PATH=false
-  :verifyInstallPathLoop
-  set /p response=Please input "J" for Java, or "N" for .NET:
-  if %response% == J SET INSTALL_PATH=Java
-  if %response% == N SET INSTALL_PATH=NET
-  if %INSTALL_PATH% == false GOTO :verifyInstallPathLoop
-GOTO :EOF
-
 :verifyJava
-  if not exist "%JAVA_HOME%\bin\java.exe" echo Please make sure your JAVA_HOME environment variable is defined correctly & CALL :Exit
-GOTO :EOF
-
-:verifyNET
-  if not exist "%iis%" echo Please make sure you have IIS 7.0+ installed to continue & CALL :Exit
-GOTO :EOF
-
-:setupNET
-  mkdir "%RUN_PATH%\net" 2>NUL
-  if not exist "%RUN_PATH%\net\server.asp" mklink "%RUN_PATH%\net\server.asp" "%SCRIPT_PATH%\src\net\server.asp" >NUL
-  %iis% list sites /name:"AppDemo .NET REST Server" >NUL
-  if %ERRORLEVEL% == 1 (
-    echo Creating AppDemo .NET REST Instance...
-    %iis% add sites /name:"AppDemo .NET REST Server" /bindings:http/*:%BACKEND_PORT%: /physicalPath:%RUN_PATH%\net
-  )
-GOTO :EOF
-
-:doMySqlInstall
-  echo Verifying/Installing MySql...
-  if exist "%RUN_PATH%\mysql\bin\mysqld.exe" echo Installed & GOTO :EOF
-  CALL :verifyUserAgreement "An instance of MySql needs to be downloaded, do you wish to continue?"
-  SET MS_DLOAD_FILE=mysql-5.6.23-win32.zip
-  if %OSBIT% == 64 SET MS_DLOAD_FILE=mysql-5.6.23-winx64.zip
-  %uwget% "http://dev.mysql.com/get/Downloads/MySQL-5.6/%MS_DLOAD_FILE%" -O "%RUN_PATH%\mysql.zip"
-  echo Unpacking MySql (this process may take a few minutes)...
-  %uunzip% "%RUN_PATH%\mysql.zip" -d "%RUN_PATH%" >NUL
-  DEL "%RUN_PATH%\mysql.zip">NUL
-  for /D %%i in (%RUN_PATH%\mysql-*) do move %%i "%RUN_PATH%\mysql" >NUL
+  if not exist "%JAVA_HOME%\bin\java.exe" echo Please make sure your JAVA_HOME environment variable is defined correctly, exiting. & CALL :Exit
 GOTO :EOF
 
 :performTomcatDependencyDownload
@@ -221,8 +174,7 @@ GOTO :EOF
   echo %BACKEND_PORT% > "%APPD_TOMCAT_FILE%"
   mkdir %RUN_PATH%\tomcatrest\repo 2>NUL
   mkdir %RUN_PATH%\tomcatrest\bin 2>NUL
-  if not exist "%RUN_PATH%\tomcatrest\repo\appdrestserver.jar" copy "%SCRIPT_PATH%\repo\appdrestserver.jar" "%RUN_PATH%\tomcatrest\repo\appdrestserver.jar" >NUL
-  if not exist "%RUN_PATH%\tomcatrest\bin\AppDemoRESTServer.bat" copy "%SCRIPT_PATH%\AppDemoRESTServer.bat" "%RUN_PATH%\tomcatrest\bin\AppDemoRESTServer.bat" >NUL
+  xcopy /e /y "%SCRIPT_PATH%\sampleapp" "%RUN_PATH%\tomcatrest" >NUL
   if exist "%RUN_PATH%\tomcatrest\repo\org\apache\tomcat\embed\tomcat-embed-core\7.0.57\tomcat-embed-core-7.0.57.jar" GOTO :EOF
   CALL :performTomcatDependencyDownload org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar
   CALL :performTomcatDependencyDownload org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar
@@ -253,17 +205,15 @@ GOTO :EOF
   CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\ver%APPSERVER_AGENT_VERSION%\conf\controller-info.xml" "JavaServer" "JavaServer01"
   SET JAVA_OPTS=-javaagent:%RUN_PATH%\AppServerAgent\javaagent.jar
   echo Starting Tomcat...
-  start "_AppDynamicsSampleApp_ Tomcat" /MIN "%RUN_PATH%\tomcatrest\bin\AppDemoRESTServer.bat"
+  start "_AppDynamicsSampleApp_ Tomcat" /MIN "%RUN_PATH%\tomcatrest\bin\SampleAppServer.bat"
 GOTO :EOF
 
-:startNET
-  echo Starting IIS Instance
-  %iis% start site "AppDemo .NET REST Server"
-  if not %ERRORLEVEL% == 0 echo Unable to start IIS Instance, exiting. & CALL :Exit
+:verifyMySql
+  for %%X in (mysql.exe) do (SET APPD_MYSQL_EXEC=%%~$PATH:X)
+  if not defined APPD_MYSQL_EXEC echo MySQL is needed to continue.  Please ensure your PATH environment variable is properly configured to include where the mysql executable is located, exiting. & CALL :Exit
 GOTO :EOF
 
 :startMySql
-  echo Starting MySql...
   start "_AppDynamicsSampleApp_ MySql" /MIN "%RUN_PATH%\mysql\bin\mysqld.exe" --no-defaults --basedir=%RUN_PATH%\mysql --datadir=%RUN_PATH%\mysql\data --pid-file=%RUN_PATH%\mysql\data\mysql.pid --port=%MYSQL_PORT% --log-error=%RUN_PATH%\mysql\mysql.err --init-file="%SCRIPT_PATH%\src\mysql.sql"
   echo %MYSQL_PORT% > "%APPD_MYSQL_PORT_FILE%"
 GOTO :EOF
@@ -297,7 +247,7 @@ GOTO :EOF
   )
   %uwget% --load-cookies "%RUN_PATH%\cookies" "%AGENT_URL%" --no-check-certificate -O "%RUN_PATH%\%AGENT_DIR%.zip"
   echo Unpacking %AGENT_DIR% (this may take a few minutes)...
-  %uunzip% "%RUN_PATH%\%AGENT_DIR%.zip" -d "%RUN_PATH%\%AGENT_DIR%" >NUL
+  CALL :performUnzip "%RUN_PATH%\%AGENT_DIR%.zip" "%RUN_PATH%\%AGENT_DIR%"
   DEL "%RUN_PATH%\%AGENT_DIR%.zip"
 GOTO :EOF
 
@@ -316,7 +266,7 @@ GOTO :EOF
   if not exist "%NVM_DIR%\nvm.exe" (
     echo Downloading NVM...
     %uwget% --no-check-certificate https://github.com/coreybutler/nvm-windows/releases/download/1.0.6/nvm-noinstall.zip -O "%RUN_PATH%\nvm.zip"
-    %uunzip% "%RUN_PATH%\nvm.zip" -d "%NVM_DIR%" >NUL
+    CALL :performUnzip "%RUN_PATH%\nvm.zip" "%NVM_DIR%"
     DEL "%RUN_PATH%\nvm.zip" 2>NUL
   )
   echo root: %NVM_HOME% > "%NVM_DIR%\settings.txt"
@@ -326,12 +276,11 @@ GOTO :EOF
   %NVM_DIR%\nvm.exe use %NODE_VERSION%
 
   echo Verifying/Installing Node Express...
-  CALL :doNodeDependencyInstall express
-  CALL :doNodeDependencyInstall request
+  CALL :doNodeDependencyInstall express@4.12.3
+  CALL :doNodeDependencyInstall request@2.55.0
   CALL :doNodeDependencyInstall jquery@2.1.3
   CALL :doNodeDependencyInstall bootstrap@3.3.4
   CALL :doNodeDependencyInstall angular@1.3.14
-  CALL :doNodeDependencyInstall angular-route@1.3.14
 GOTO :EOF
 
 :startNode
@@ -367,26 +316,15 @@ GOTO :EOF
     SET NOPROMPT=true
   )
   CALL :downloadWget
-  CALL :downloadDependencies
-  CALL :determineInstallPath
-  IF %INSTALL_PATH% == Java (
-    CALL :verifyJava
-    CALL :doTomcatInstall
-    CALL :doJavaAgentInstalls
-  ) else (
-    CALL :verifyNET
-    CALL :setupNET
-  )
-  CALL :doMySqlInstall
+  CALL :verifyJava
+  CALL :verifyMySql
+  CALL :doTomcatInstall
+  CALL :doJavaAgentInstalls
   CALL :startMySql
   CALL :doNodeInstall
   CALL :startMachineAgent
   CALL :startDatabaseAgent
-  IF %INSTALL_PATH% == Java (
-    CALL :startTomcat
-  ) else (
-    CALL :startNET
-  )
+  CALL :startTomcat
   CALL :startNode
 
   echo The AppDynamics Sample App Environment has been started.
@@ -403,9 +341,6 @@ GOTO :EOF
   DEL "%RUN_PATH%\status" 2>NUL
   DEL "%RUN_PATH%\varout" 2>NUL
   DEL "%APPD_TOMCAT_FILE%" 2>NUL
-  IF %INSTALL_PATH% == NET (
-    IF exist "%iis%" %iis% stop site "AppDemo .NET REST Server"
-  )
   taskkill /FI "WINDOWTITLE eq _AppDynamicsSampleApp_*" 1>NUL 2>&1
   taskkill /F /IM mysqld.exe 1>NUL 2>&1
   ENDLOCAL

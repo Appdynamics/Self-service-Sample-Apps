@@ -14,7 +14,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
 @Path("/appdserver")
-public class AppDREST {
+public class SampleAppREST {
   final String mysql_port_file = System.getenv().get("APPD_MYSQL_PORT_FILE");
 
   private Connection getConnection() throws Exception {
@@ -26,8 +26,9 @@ public class AppDREST {
     } catch (Exception exception) {}
 
     int rand = (int) Math.ceil(Math.random()*100);
-    //Lets inject a longer load for a random amount of time
+    // Lets inject a longer load for a random amount of time
     if (rand > 90) {
+      // If
       int loops = (int) Math.ceil(Math.random()*10);
       for(int x = 0; x < loops; ++x) {
         Thread.sleep(1000);
@@ -36,7 +37,7 @@ public class AppDREST {
 
     Class.forName("com.mysql.jdbc.Driver").newInstance();
     return DriverManager
-      .getConnection("jdbc:mysql://localhost:8889/AppDemo",
+      .getConnection("jdbc:mysql://localhost:" + port + "/AppDemo",
         "demouser",
         "demouser"
       );

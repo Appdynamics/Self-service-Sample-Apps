@@ -10,11 +10,11 @@ import javax.servlet.ServletException;
 import java.io.*;
 import java.lang.Exception;
 
-public class AppDServer {
+public class SampleAppServer {
   final String tomcat_file = System.getenv().get("APPD_TOMCAT_FILE");
 
   public static void main(String[] args) throws LifecycleException, IOException, ServletException {
-    new AppDServer().start();
+    new SampleAppServer().start();
   }
 
   public void start() throws LifecycleException, IOException, ServletException {
@@ -38,7 +38,7 @@ public class AppDServer {
   }
 
   private ServletContainer resourceConfig() {
-    return new ServletContainer(new ResourceConfig(new AppDApplication().getClasses()));
+    return new ServletContainer(new ResourceConfig(new SampleAppApplication().getClasses()));
   }
 
 }
