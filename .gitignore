@@ -2,3 +2,7 @@
 src/public/bootstrap*
 src/public/jquery*
 src/public/angular*
+maven/target*
+sampleapp/repo/javax*
+sampleapp/repo/mysql*
+sampleapp/repo/org*
