@@ -2,8 +2,8 @@ AppDynamics Demo Application Environment Setup
 This script will setup a sample application environment to show how AppDynamics works.
 * This following will be installed and setup for the demo environment:
   - Tomcat Standalone Instance
-  - NodeJS (with Express, Request, jquery, Bootstrap, and Angular)
-  - MySql (with mysqlconnector)
+  - NodeJS (with Express, Request, jQuery, Bootstrap, and Angular)
+  - MySql
   - AppDynamics Node Agent
   - AppDynamics Machine Agent
   - AppDynamics Database Agent
