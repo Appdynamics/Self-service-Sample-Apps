@@ -46,7 +46,6 @@ SET INSTALL_PATH=false
 
 mkdir "%RUN_PATH%" 2>NUL
 
-SET ugrep="%RUN_PATH%\utils\unixutils\usr\local\wbin\grep.exe"
 SET ucurl="%RUN_PATH%\utils\curl.exe"
 
 SET node="%NODE_DIR%\node.exe"
