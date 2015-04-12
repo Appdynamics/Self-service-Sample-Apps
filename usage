@@ -13,3 +13,4 @@ Arguments:
   -z        Prompt on each install request
   -d        Remove the sample application and exit
   -h        Print Help (this message) and exit
+  -t        Amount of time in seconds the script will wait for its server instances to boot (defaults to 150)

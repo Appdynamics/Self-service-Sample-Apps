@@ -10,7 +10,7 @@ MACHINE_AGENT_VERSION="4.0.1.0"
 DATABASE_AGENT_VERSION="4.0.1.0"
 APPSERVER_AGENT_VERSION="4.0.1.0"
 
-APPLICATION_NAME="TestApplication"
+APPLICATION_NAME="SampleApplicationLinux"
 JAVA_PORT=8887
 NODE_PORT=8888
 MYSQL_PORT=3306
@@ -19,12 +19,11 @@ ANT_VERSION="1.9.4"
 NODE_VERSION="0.10.33"
 NOPROMPT=false
 PROMPT_EACH_REQUEST=false
-TIMEOUT=300 #5 Minutes
-ARCH=$(uname -m)
+TIMEOUT=150
 APP_STARTED=false
 
 SCRIPT_PATH="$(readlink -f "$0" | xargs dirname)"
-RUN_PATH="/var/tmp/AppDynamics"
+RUN_PATH="/var/tmp/AppDynamicsSampleApp"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
 NOW=$(date +"%s")
 RUN_LOG="$RUN_PATH/log/$NOW"
@@ -63,7 +62,7 @@ removeEnvironment() {
 }
 
 if ! [ $(id -u) = 0 ]; then echo "Please run this script as root!"; usage; fi
-while getopts :c:p:u:k:s:n:a:m:hdyz OPT; do
+while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
   case "$OPT" in
     c) CONTROLLER_ADDRESS=$OPTARG;;
     p) CONTROLLER_PORT=$OPTARG;;
@@ -77,6 +76,7 @@ while getopts :c:p:u:k:s:n:a:m:hdyz OPT; do
     y) NOPROMPT=true;;
     d) removeEnvironment;;
     z) PROMPT_EACH_REQUEST=true;;
+    t) TIMEOUT=$OPTARG;;
     :) echo "Missing argument for -$OPTARG!"; usage;;
     \?) echo "Invalid option: -$OPTARG!"; usage;;
   esac
@@ -135,17 +135,23 @@ writeControllerInfo() {
 startProcess() {
   local LOG_KEY="$1"; PROCESS_NAME="$2"; local PROCESS_COMMAND="$3"
   local LOG_SUCCESS_TEXT="$4"; local LOG_FAILURE_TEXT="$5"; local NOWAIT=false
-  local STARTUP=
+  APPD_ACTIVE_STARTUP_CHECK=
   echo "Starting $PROCESS_NAME..."
   touch "$RUN_LOG/$LOG_KEY"
   if [ "$LOG_SUCCESS_TEXT" != "NOWAIT" ]; then
     tail -n 1 -f "$RUN_LOG/$LOG_KEY" | grep -m 1 "$(escaper "$LOG_SUCCESS_TEXT")\|$(escaper "$LOG_FAILURE_TEXT")" | { cat; echo >> "$RUN_LOG/$LOG_KEY"; } > "$RUN_PATH/status-$LOG_KEY" &
-    STARTUP=$!
+    APPD_ACTIVE_STARTUP_CHECK=$!
   else NOWAIT=true; fi;
   ${PROCESS_COMMAND} >> "$RUN_LOG/$LOG_KEY" 2>&1  &
   if [ "$NOWAIT" = false ]; then
-    wait "$STARTUP"
-    if [ "$(head -n 1 "$RUN_PATH/status-$LOG_KEY")" != "$LOG_SUCCESS_TEXT" ]; then
+    LOOPS=0
+    while [ "$LOOPS" -ne "$TIMEOUT" -a $(ps -p"$APPD_ACTIVE_STARTUP_CHECK" -o pid=) ]; do
+      printf "%s" "."
+      LOOPS=$((LOOPS+1))
+      sleep 1
+    done
+    echo ""
+    if [ "$(head -n 1 "$RUN_PATH/status-$LOG_KEY")" != "$LOG_SUCCESS_TEXT" -o "$LOOPS" -eq "$TIMEOUT" ]; then
       echo "Unable to start $PROCESS_NAME, exiting."
       exit 1
     fi
@@ -195,7 +201,9 @@ doAgentInstalls() {
 
 performTomcatDependencyDownload() {
   local TOMCAT_URL=$1
-  wget "http://repo.maven.apache.org/maven2/$TOMCAT_URL" -x --cut-dirs=1 -nH -P "$RUN_PATH/tomcatrest/repo"
+  if [ -f "$RUN_PATH/tomcatrest/repo/$TOMCAT_URL" ]; then return 0; fi
+  mkdir -p $(dirname "$RUN_PATH/tomcatrest/repo/$TOMCAT_URL")
+  wget -O "$RUN_PATH/tomcatrest/repo/$TOMCAT_URL" "http://repo.maven.apache.org/maven2/$TOMCAT_URL"
 }
 
 doTomcatInstall() {
@@ -204,7 +212,6 @@ doTomcatInstall() {
   mkdir -p "$RUN_PATH/tomcatrest/repo"
   mkdir -p "$RUN_PATH/tomcatrest/bin"
   cp -rf "$SCRIPT_PATH/sampleapp/"* "$RUN_PATH/tomcatrest" >/dev/null
-  if [ -f "$RUN_PATH/tomcatrest/repo/org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar" ]; then echo "Installed"; return 0; fi
   performTomcatDependencyDownload "org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar"
   performTomcatDependencyDownload "org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar"
   performTomcatDependencyDownload "org/glassfish/hk2/external/javax.inject/2.3.0-b05/javax.inject-2.3.0-b05.jar"
@@ -294,7 +301,6 @@ runMySqlScripts() {
     verifyUserAgreement "The mysql script install/check failed, do you wish to try again?" true
     runMySqlScripts
   fi
-  echo "Done."
   echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
   return 0
 }
@@ -328,7 +334,7 @@ require(\"appdynamics\").profile({
   ln -sf "$RUN_PATH/node_modules/bootstrap/dist/" "$SCRIPT_PATH/src/public/bootstrap"
   ln -sf "$RUN_PATH/node_modules/jquery/dist/" "$SCRIPT_PATH/src/public/jquery"
   if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_PATH/src/public/" "$RUN_PATH/node/public"; fi
-  startProcess "Node" "Node (Port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "\"err\":"
+  startProcess "Node" "Node (Port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
 }
 
 onExitCleanup() {
@@ -360,4 +366,4 @@ startNode
 echo "Sample App Environment Setup Complete!"
 echo "Visit http://localhost:$NODE_PORT to view the sample app."
 
-wait
+read -p "Press [Enter] key to quit..." QUIT_VAR
