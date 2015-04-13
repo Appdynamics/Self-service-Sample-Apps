@@ -93,7 +93,7 @@ CALL :startup
 GOTO :Exit
 
 :about
-  type "%SCRIPT_PATH%\about"
+  type "%SCRIPT_PATH%\README"
   echo.
 GOTO :EOF
 

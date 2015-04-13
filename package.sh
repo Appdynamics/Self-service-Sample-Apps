@@ -12,25 +12,23 @@ if ! which mvn >/dev/null ; then
   exit 1
 fi
 
-#Run paven package to build java server jar
+# Run maven package to build java server jar
 cd "$SCRIPT_PATH/maven"
 mvn package
 cd "$SCRIPT_PATH"
 
-#We do not need to package java dependencies as they will be downloaded by the install script
+# We do not need to package java dependencies as they will be downloaded by the install script
 rm -rf "$SCRIPT_PATH/sampleapp/repo/javax"
 rm -rf "$SCRIPT_PATH/sampleapp/repo/mysql"
 rm -rf "$SCRIPT_PATH/sampleapp/repo/org"
 
 find "$SCRIPT_PATH/src/public" -type l | xargs rm -rf
 
-#Make sure windows line endings are correct before packaging
+# Make sure windows line endings are correct before packaging
 unix2dos "$SCRIPT_PATH/INSTALL_Windows.bat"
 unix2dos "$SCRIPT_PATH/vbs/download.vbs"
 unix2dos "$SCRIPT_PATH/vbs/unzip.vbs"
 
-#Create distributable package
-rm -rf "$SCRIPT_PATH/sampleapp.tar.gz"
-rm -rf "$SCRIPT_PATH/sampleapp.zip"
-tar -cvzf "$SCRIPT_PATH/sampleapp.tar.gz" --exclude "INSTALL_Windows.bat" --exclude "vbs" --exclude "package.sh" --exclude "maven" --exclude ".idea" --exclude ".gitignore" --exclude ".git" --exclude "sampleapp.tar.gz" --exclude "sampleapp.zip" *
-zip "$SCRIPT_PATH/sampleapp.zip" . -r -x "INSTALL_Linux.sh" "package.sh" "maven/*" ".idea/*" ".gitignore" ".git/*" "sampleapp.tar.gz" "sampleapp.zip"
+# Create Zip file
+rm -rf "$SCRIPT_PATH/appdynamics-sample-app.zip"
+zip "$SCRIPT_PATH/appdynamics-sample-app.zip" -r "INSTALL_Linux.sh" "INSTALL_Mac.bat" "INSTALL_Windows.bat" about usage sampleapp src vbs

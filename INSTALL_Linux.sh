@@ -39,7 +39,7 @@ export APPD_MYSQL_PORT_FILE="$RUN_PATH/mysql.port"
 export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 
 about() {
-  cat "$SCRIPT_PATH/about"
+  cat "$SCRIPT_PATH/README"
   echo "
 * Note The following dependencies are required:
   - wget
