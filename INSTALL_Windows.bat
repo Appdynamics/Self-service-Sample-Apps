@@ -120,17 +120,17 @@ GOTO :EOF
   SET WRITE_FILE=%~1
   SET TIER_NAME=%~2
   SET NODE_NAME=%~3
-  echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > "%WRITE_FILE%"
-  echo "<controller-info>" >> "%WRITE_FILE%"
-	echo "<controller-host>%CONTROLLER_ADDRESS%</controller-host>" >> "%WRITE_FILE%"
-	echo "<controller-port>%CONTROLLER_PORT%</controller-port>"  >> "%WRITE_FILE%"
-	echo "<controller-ssl-enabled>%SSL%</controller-ssl-enabled>" >> "%WRITE_FILE%"
-	echo "<account-name>%ACCOUNT_NAME%</account-name>" >> "%WRITE_FILE%"
-	echo "<account-access-key>%ACCOUNT_ACCESS_KEY%</account-access-key>" >> "%WRITE_FILE%"
-	echo "<application-name>%APPLICATION_NAME%</application-name>" >> "%WRITE_FILE%"
-	echo "<tier-name>%TIER_NAME%</tier-name>" >> "%WRITE_FILE%"
-	echo "<node-name>%NODE_NAME%</node-name>" >> "%WRITE_FILE%"
-	echo "</controller-info>" >> "%WRITE_FILE%"
+  echo ^<?xml version="1.0" encoding="UTF-8"?^> > "%WRITE_FILE%"
+  echo ^<controller-info^> >> "%WRITE_FILE%"
+	echo ^<controller-host^>%CONTROLLER_ADDRESS%^</controller-host^> >> "%WRITE_FILE%"
+	echo ^<controller-port^>%CONTROLLER_PORT%^</controller-port^>  >> "%WRITE_FILE%"
+	echo ^<controller-ssl-enabled^>%SSL%^</controller-ssl-enabled^> >> "%WRITE_FILE%"
+	echo ^<account-name^>%ACCOUNT_NAME%^</account-name^> >> "%WRITE_FILE%"
+	echo ^<account-access-key^>%ACCOUNT_ACCESS_KEY%^</account-access-key^> >> "%WRITE_FILE%"
+	echo ^<application-name^>%APPLICATION_NAME%^</application-name^> >> "%WRITE_FILE%"
+	echo ^<tier-name^>%TIER_NAME%^</tier-name^> >> "%WRITE_FILE%"
+	echo ^<node-name^>%NODE_NAME%^</node-name^> >> "%WRITE_FILE%"
+	echo ^</controller-info^> >> "%WRITE_FILE%"
 GOTO :EOF
 
 :removeEnvironment

@@ -9,6 +9,7 @@ SSL="false"
 MACHINE_AGENT_VERSION="4.0.1.0"
 DATABASE_AGENT_VERSION="4.0.1.0"
 APPSERVER_AGENT_VERSION="4.0.1.0"
+NODE_AGENT_VERSION="4.0.1"
 
 APPLICATION_NAME="SampleApplicationLinux"
 JAVA_PORT=8887
@@ -259,7 +260,7 @@ doNodeInstall() {
   nvm install 0.10.33
 
   echo "Verifying/Installing AppDynamics NodeJS Agent..."
-  if ! npm list appdynamics >/dev/null ; then npm install appdynamics@4.0.1; else echo "Installed"; fi
+  if ! npm list appdynamics >/dev/null ; then npm install "appdynamics@$NODE_AGENT_VERSION"; else echo "Installed"; fi
 
   echo "Verifying/Installing Node Express..."
   if ! npm list express >/dev/null ; then npm install express@4.12.3; else echo "Installed"; fi
