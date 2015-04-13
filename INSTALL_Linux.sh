@@ -23,7 +23,10 @@ PROMPT_EACH_REQUEST=false
 TIMEOUT=150
 APP_STARTED=false
 
-SCRIPT_PATH="$(readlink -f "$0" | xargs dirname)"
+pushd `dirname $0` > /dev/null
+SCRIPT_DIR=`pwd -P`
+popd > /dev/null
+
 RUN_PATH="/var/tmp/AppDynamicsSampleApp"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
 NOW=$(date +"%s")
@@ -39,7 +42,7 @@ export APPD_MYSQL_PORT_FILE="$RUN_PATH/mysql.port"
 export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 
 about() {
-  cat "$SCRIPT_PATH/README"
+  cat "$SCRIPT_DIR/README"
   echo "
 * Note The following dependencies are required:
   - wget
@@ -51,7 +54,7 @@ about() {
 usage() {
   about
   printf "%s" "usage: sudo sh Appdemo.sh "
-  cat "$SCRIPT_PATH/usage"
+  cat "$SCRIPT_DIR/usage"
   exit 0
 }
 
@@ -212,7 +215,7 @@ installTomcat() {
   echo "$JAVA_PORT" > "$APPD_TOMCAT_FILE"
   mkdir -p "$RUN_PATH/tomcatrest/repo"
   mkdir -p "$RUN_PATH/tomcatrest/bin"
-  cp -rf "$SCRIPT_PATH/sampleapp/"* "$RUN_PATH/tomcatrest" >/dev/null
+  cp -rf "$SCRIPT_DIR/sampleapp/"* "$RUN_PATH/tomcatrest" >/dev/null
   performTomcatDependencyDownload "org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar"
   performTomcatDependencyDownload "org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar"
   performTomcatDependencyDownload "org/glassfish/hk2/external/javax.inject/2.3.0-b05/javax.inject-2.3.0-b05.jar"
@@ -297,7 +300,7 @@ verifyJava() {
 
 createMySQLDatabase() {
   echo "Please login to mysql with root to setup the database for the demo application..."
-  mysql -u root -p < "$SCRIPT_PATH/src/mysql.sql"
+  mysql -u root -p < "$SCRIPT_DIR/src/mysql.sql"
   if [ $? -ne 0 ]; then
     verifyUserAgreement "The mysql script install/check failed, do you wish to try again?" true
     createMySQLDatabase
@@ -330,11 +333,11 @@ require(\"appdynamics\").profile({
     nodeName: \"NodeServer01\"
 });
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
-  cat "$SCRIPT_PATH/src/server.js" >> "$RUN_PATH/node/server.js"
-  ln -sf "$RUN_PATH/node_modules/angular/" "$SCRIPT_PATH/src/public/angular"
-  ln -sf "$RUN_PATH/node_modules/bootstrap/dist/" "$SCRIPT_PATH/src/public/bootstrap"
-  ln -sf "$RUN_PATH/node_modules/jquery/dist/" "$SCRIPT_PATH/src/public/jquery"
-  if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_PATH/src/public/" "$RUN_PATH/node/public"; fi
+  cat "$SCRIPT_DIR/src/server.js" >> "$RUN_PATH/node/server.js"
+  ln -sf "$RUN_PATH/node_modules/angular/" "$SCRIPT_DIR/src/public/angular"
+  ln -sf "$RUN_PATH/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"
+  ln -sf "$RUN_PATH/node_modules/jquery/dist/" "$SCRIPT_DIR/src/public/jquery"
+  if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
   startProcess "Node" "Node (Port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
 }
 

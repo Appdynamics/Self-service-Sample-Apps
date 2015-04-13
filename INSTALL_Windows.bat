@@ -26,8 +26,8 @@ SET PROMPT_EACH_REQUEST=false
 SET APP_STARTED=false
 
 SET LOGGED_IN=false
-SET SCRIPT_PATH=%~dp0
-SET SCRIPT_PATH=%SCRIPT_PATH:~0,-1%
+SET SCRIPT_DIR=%~dp0
+SET SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
 SET RUN_PATH=C:\AppDynamicsSampleApp
 SET NVM_DIR=%RUN_PATH%\.nvm
 SET NVM_HOME=%NVM_DIR%
@@ -93,14 +93,14 @@ CALL :startup
 GOTO :Exit
 
 :about
-  type "%SCRIPT_PATH%\README"
+  type "%SCRIPT_DIR%\README"
   echo.
 GOTO :EOF
 
 :usage
   CALL :about
   echo usage: AppDemo.bat
-  type "%SCRIPT_PATH%\usage"
+  type "%SCRIPT_DIR%\usage"
   Exit /B 0
 GOTO :EOF
 
@@ -144,7 +144,7 @@ GOTO :EOF
   SET VB_ZIP_LOCATION=%~1
   SET VB_EXTRACT_LOCATION=%~2
   mkdir "%VB_EXTRACT_LOCATION%" 2>NUL
-  CALL cscript.exe "%SCRIPT_PATH%\vbs\unzip.vbs" >NUL
+  CALL cscript.exe "%SCRIPT_DIR%\vbs\unzip.vbs" >NUL
 GOTO :EOF
 
 :downloadCurl
@@ -153,7 +153,7 @@ GOTO :EOF
   CALL :verifyUserAgreement "curl needs to be downloaded, do you wish to continue?"
   SET VB_DOWNLOAD_URL="http://www.paehl.com/open_source/?download=curl_741_0_ssl.zip"
   SET VB_ZIP_LOCATION=%RUN_PATH%\curl.zip
-  CALL cscript.exe "%SCRIPT_PATH%\vbs\download.vbs" >NUL
+  CALL cscript.exe "%SCRIPT_DIR%\vbs\download.vbs" >NUL
   CALL :performUnzip "%RUN_PATH%\curl.zip" "%RUN_PATH%\utils"
   DEL "%RUN_PATH%\curl.zip" >NUL
 GOTO :EOF
@@ -170,7 +170,7 @@ GOTO :EOF
 
 :createMySQLDatabase
   echo Please login to mysql with root to setup the database for the demo application...
-  %APPD_MYSQL_EXEC% -u root -p < "%SCRIPT_PATH%\src\mysql.sql"
+  %APPD_MYSQL_EXEC% -u root -p < "%SCRIPT_DIR%\src\mysql.sql"
   if not %errorlevel% == 0 (
     CALL :verifyUserAgreement "The mysql script install/check failed, do you wish to try again?" true
     CALL :createMySQLDatabase
@@ -190,7 +190,7 @@ GOTO :EOF
   echo %BACKEND_PORT% > "%APPD_TOMCAT_FILE%"
   mkdir %RUN_PATH%\tomcatrest\repo 2>NUL
   mkdir %RUN_PATH%\tomcatrest\bin 2>NUL
-  xcopy /e /y "%SCRIPT_PATH%\sampleapp" "%RUN_PATH%\tomcatrest" >NUL
+  xcopy /e /y "%SCRIPT_DIR%\sampleapp" "%RUN_PATH%\tomcatrest" >NUL
   CALL :performTomcatDependencyDownload org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar
   CALL :performTomcatDependencyDownload org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar
   CALL :performTomcatDependencyDownload org/glassfish/hk2/external/javax.inject/2.3.0-b05/javax.inject-2.3.0-b05.jar
@@ -300,12 +300,12 @@ GOTO :EOF
 
 :startNode
   mkdir "%RUN_PATH%\node" 2>NUL
-  if not exist "%RUN_PATH%\node\server.js" mklink "%RUN_PATH%\node\server.js" "%SCRIPT_PATH%\src\server.js" >NUL
-  if not exist "%RUN_PATH%\node\public\angular" mklink /D "%SCRIPT_PATH%\src\public\angular" "%NODE_PATH%\angular" >NUL
-  if not exist "%RUN_PATH%\node\public\angular-route" mklink /D "%SCRIPT_PATH%\src\public\angular-route" "%NODE_PATH%\angular-route" >NUL
-  if not exist "%RUN_PATH%\node\public\bootstrap" mklink /D "%SCRIPT_PATH%\src\public\bootstrap" "%NODE_PATH%\bootstrap\dist" >NUL
-  if not exist "%RUN_PATH%\node\public\jquery" mklink /D "%SCRIPT_PATH%\src\public\jquery" "%NODE_PATH%\jquery\dist" >NUL
-  if not exist "%RUN_PATH%\node\public" mklink /D "%RUN_PATH%\node\public" "%SCRIPT_PATH%\src\public" >NUL
+  if not exist "%RUN_PATH%\node\server.js" mklink "%RUN_PATH%\node\server.js" "%SCRIPT_DIR%\src\server.js" >NUL
+  if not exist "%RUN_PATH%\node\public\angular" mklink /D "%SCRIPT_DIR%\src\public\angular" "%NODE_PATH%\angular" >NUL
+  if not exist "%RUN_PATH%\node\public\angular-route" mklink /D "%SCRIPT_DIR%\src\public\angular-route" "%NODE_PATH%\angular-route" >NUL
+  if not exist "%RUN_PATH%\node\public\bootstrap" mklink /D "%SCRIPT_DIR%\src\public\bootstrap" "%NODE_PATH%\bootstrap\dist" >NUL
+  if not exist "%RUN_PATH%\node\public\jquery" mklink /D "%SCRIPT_DIR%\src\public\jquery" "%NODE_PATH%\jquery\dist" >NUL
+  if not exist "%RUN_PATH%\node\public" mklink /D "%RUN_PATH%\node\public" "%SCRIPT_DIR%\src\public" >NUL
   echo Starting Node...
   start "_AppDynamicsSampleApp_ Node" /MIN "%node%" "%RUN_PATH%\node\server.js"
 GOTO :EOF
