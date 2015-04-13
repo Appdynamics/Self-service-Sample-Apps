@@ -167,7 +167,7 @@ verifyDependency() {
   return 0
 }
 
-doDependencyInstalls() {
+installDependencies() {
   verifyDependency "wget"
   verifyDependency "unzip"
   verifyDependency "gzip"
@@ -194,7 +194,7 @@ agentInstall() {
   if [ ! -f "$RUN_PATH/$AGENT_DIR/$AGENT_CHECK_FILE" ]; then echo "Bad Agent Archive: $AGENT_DIR.zip, exiting."; exit 1; fi
 }
 
-doAgentInstalls() {
+installAgents() {
   agentInstall "MachineAgent" "machineagent.jar" "https://download.appdynamics.com/saas/public/archives/$MACHINE_AGENT_VERSION/MachineAgent-$MACHINE_AGENT_VERSION.zip"
   agentInstall "DatabaseAgent" "db-agent.jar" "https://download.appdynamics.com/saas/public/archives/$DATABASE_AGENT_VERSION/dbagent-$DATABASE_AGENT_VERSION.zip"
   agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/$APPSERVER_AGENT_VERSION/AppServerAgent-$APPSERVER_AGENT_VERSION.zip"
@@ -207,7 +207,7 @@ performTomcatDependencyDownload() {
   wget -O "$RUN_PATH/tomcatrest/repo/$TOMCAT_URL" "http://repo.maven.apache.org/maven2/$TOMCAT_URL"
 }
 
-doTomcatInstall() {
+installTomcat() {
   echo "Setting up Tomcat..."
   echo "$JAVA_PORT" > "$APPD_TOMCAT_FILE"
   mkdir -p "$RUN_PATH/tomcatrest/repo"
@@ -248,7 +248,7 @@ setupNodeNvm() {
   [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 }
 
-doNodeInstall() {
+installNode() {
   echo "Verifying/Installing Node..."
   setupNodeNvm
   if ! command -v nvm 2>/dev/null >/dev/null ; then
@@ -278,8 +278,8 @@ doNodeInstall() {
   if ! npm list angular >/dev/null ; then npm install angular@1.3.14; else echo "Installed"; fi
 }
 
-verifyMySql() {
-  echo "Verifying MySql..."
+verifyMySQL() {
+  echo "Verifying MySQL..."
   if ! which mysql >/dev/null ; then
     echo "Cannot find mysql, please make sure it is installed before continuing, exiting.";
     exit 1;
@@ -295,12 +295,12 @@ verifyJava() {
   fi
 }
 
-runMySqlScripts() {
+createMySQLDatabase() {
   echo "Please login to mysql with root to setup the database for the demo application..."
   mysql -u root -p < "$SCRIPT_PATH/src/mysql.sql"
   if [ $? -ne 0 ]; then
     verifyUserAgreement "The mysql script install/check failed, do you wish to try again?" true
-    runMySqlScripts
+    createMySQLDatabase
   fi
   echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
   return 0
@@ -352,13 +352,13 @@ onExitCleanup() {
 trap "exit" INT TERM && trap onExitCleanup EXIT
 
 startup
-doDependencyInstalls
+installDependencies
 verifyJava
-verifyMySql
-runMySqlScripts
-doTomcatInstall
-doNodeInstall
-doAgentInstalls
+verifyMySQL
+createMySQLDatabase
+installTomcat
+installNode
+installAgents
 startMachineAgent
 startDatabaseAgent
 startTomcat

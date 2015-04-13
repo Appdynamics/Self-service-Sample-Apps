@@ -162,18 +162,18 @@ GOTO :EOF
   if not exist "%JAVA_HOME%\bin\java.exe" echo Please make sure your JAVA_HOME environment variable is defined correctly, exiting. & CALL :Exit
 GOTO :EOF
 
-:verifyMySql
+:verifyMySQL
   for %%X in (mysql.exe) do (SET APPD_MYSQL_EXEC=%%~$PATH:X)
   if not defined APPD_MYSQL_EXEC echo MySQL is needed to continue.  Please ensure your PATH environment variable is properly configured to include where the mysql executable is located, exiting. & CALL :Exit
   echo %MYSQL_PORT% > "%APPD_MYSQL_PORT_FILE%"
 GOTO :EOF
 
-:runMySqlScripts
+:createMySQLDatabase
   echo Please login to mysql with root to setup the database for the demo application...
   %APPD_MYSQL_EXEC% -u root -p < "%SCRIPT_PATH%\src\mysql.sql"
   if not %errorlevel% == 0 (
     CALL :verifyUserAgreement "The mysql script install/check failed, do you wish to try again?" true
-    CALL :runMySqlScripts
+    CALL :createMySQLDatabase
   )
 GOTO :EOF
 
@@ -185,7 +185,7 @@ GOTO :EOF
   %ucurl% -q --create-dirs -L -o "%RUN_PATH%\tomcatrest\repo\%TOMCAT_DEPENDENCY_FOLDER%" http://repo.maven.apache.org/maven2/%1
 GOTO :EOF
 
-:doTomcatInstall
+:installTomcat
   echo Setting up Tomcat...
   echo %BACKEND_PORT% > "%APPD_TOMCAT_FILE%"
   mkdir %RUN_PATH%\tomcatrest\repo 2>NUL
@@ -220,7 +220,7 @@ GOTO :EOF
   %npm% install %1 -g
 GOTO :EOF
 
-:doNodeInstall
+:installNode
   if not exist "%NVM_DIR%\nvm.exe" (
     echo Downloading NVM...
     %ucurl% -q -o "%RUN_PATH%\nvm.zip" -L --insecure "https://github.com/coreybutler/nvm-windows/releases/download/1.0.6/nvm-noinstall.zip"
@@ -272,7 +272,7 @@ GOTO :EOF
   DEL "%RUN_PATH%\%AGENT_DIR%.zip"
 GOTO :EOF
 
-:doAgentInstalls
+:installAgents
   CALL :agentInstall "MachineAgent" "machineagent.jar" "https://download.appdynamics.com/saas/public/archives/%MACHINE_AGENT_VERSION%/MachineAgent-%MACHINE_AGENT_VERSION%.zip"
   CALL :agentInstall "DatabaseAgent" "db-agent.jar" "https://download.appdynamics.com/saas/public/archives/%DATABASE_AGENT_VERSION%/dbagent-%DATABASE_AGENT_VERSION%.zip"
   CALL :agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/%APPSERVER_AGENT_VERSION%/AppServerAgent-%APPSERVER_AGENT_VERSION%.zip"
@@ -320,11 +320,11 @@ GOTO :EOF
   )
   CALL :downloadCurl
   CALL :verifyJava
-  CALL :verifyMySql
-  CALL :runMySqlScripts
-  CALL :doTomcatInstall
-  CALL :doNodeInstall
-  CALL :doAgentInstalls
+  CALL :verifyMySQL
+  CALL :createMySQLDatabase
+  CALL :installTomcat
+  CALL :installNode
+  CALL :installAgents
   CALL :startMachineAgent
   CALL :startDatabaseAgent
   CALL :startTomcat
