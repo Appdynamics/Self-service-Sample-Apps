@@ -10,7 +10,7 @@ SCRIPT_DIR=`pwd -P`
 popd > /dev/null
 
 if ! which mvn >/dev/null ; then
-  echo "Apache Maven is required to perform packaging, please make sure your PATH environment variable points to its location, exiting."
+  echo "Apache Maven is required to perform packaging but is not found in your PATH. Exiting."
   exit 1
 fi
 
