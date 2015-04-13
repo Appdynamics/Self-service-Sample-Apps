@@ -22,7 +22,12 @@ rm -rf "$SCRIPT_PATH/sampleapp/repo/javax"
 rm -rf "$SCRIPT_PATH/sampleapp/repo/mysql"
 rm -rf "$SCRIPT_PATH/sampleapp/repo/org"
 
-find "$SCRIPT_PATH/src/public" -type l | xargs rm
+find "$SCRIPT_PATH/src/public" -type l | xargs rm -rf
+
+#Make sure windows line endings are correct before packaging
+unix2dos "$SCRIPT_PATH/INSTALL_Windows.bat"
+unix2dos "$SCRIPT_PATH/vbs/download.vbs"
+unix2dos "$SCRIPT_PATH/vbs/unzip.vbs"
 
 #Create distributable package
 rm -rf "$SCRIPT_PATH/sampleapp.tar.gz"
