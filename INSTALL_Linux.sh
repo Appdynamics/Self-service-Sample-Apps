@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # Configure these values on download.
-ACCOUNT_NAME=""
-ACCOUNT_ACCESS_KEY=""
-CONTROLLER_ADDRESS=false
-CONTROLLER_PORT=false
-SSL="false"
-MACHINE_AGENT_VERSION="4.0.1.0"
-DATABASE_AGENT_VERSION="4.0.1.0"
-APPSERVER_AGENT_VERSION="4.0.1.0"
-NODE_AGENT_VERSION="4.0.1"
+ACCOUNT_NAME="config-account-name"
+ACCOUNT_ACCESS_KEY="config-account-access-key"
+CONTROLLER_ADDRESS="config-controller-host"
+CONTROLLER_PORT="config-controller-port"
+CONTROLLER_SSL="config-controller-ssl-enabled"
+DATABASE_AGENT_VERSION="config-database-agent-version"
+JAVA_AGENT_VERSION="config-java-agent-version"
+MACHINE_AGENT_VERSION="config-machine-agent-version"
+NODE_AGENT_VERSION="config-node-agent-version"
 
-APPLICATION_NAME="SampleApplicationLinux"
+APPLICATION_NAME="AppDynamics Sample App (Linux)"
 JAVA_PORT=8887
 NODE_PORT=8888
 MYSQL_PORT=3306
@@ -72,7 +72,7 @@ while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
     p) CONTROLLER_PORT=$OPTARG;;
     u) ACCOUNT_NAME=$OPTARG;;
     k) ACCOUNT_ACCESS_KEY=$OPTARG;;
-    s) SSL=$OPTARG;;
+    s) CONTROLLER_SSL=$OPTARG;;
     n) NODE_PORT=$OPTARG;;
     j) JAVA_PORT=$OPTARG;;
     m) MYSQL_PORT=$OPTARG;;
@@ -133,7 +133,7 @@ writeControllerInfo() {
 		<tier-name>%s</tier-name>
 		<node-name>%s</node-name>
 	</controller-info>
-  " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$SSL" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$APPLICATION_NAME" "$TIER_NAME" "$NODE_NAME" > "$WRITE_FILE"
+  " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$CONTROLLER_SSL" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$APPLICATION_NAME" "$TIER_NAME" "$NODE_NAME" > "$WRITE_FILE"
 }
 
 startProcess() {
@@ -200,7 +200,7 @@ agentInstall() {
 installAgents() {
   agentInstall "MachineAgent" "machineagent.jar" "https://download.appdynamics.com/saas/public/archives/$MACHINE_AGENT_VERSION/MachineAgent-$MACHINE_AGENT_VERSION.zip"
   agentInstall "DatabaseAgent" "db-agent.jar" "https://download.appdynamics.com/saas/public/archives/$DATABASE_AGENT_VERSION/dbagent-$DATABASE_AGENT_VERSION.zip"
-  agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/$APPSERVER_AGENT_VERSION/AppServerAgent-$APPSERVER_AGENT_VERSION.zip"
+  agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/$JAVA_AGENT_VERSION/AppServerAgent-$JAVA_AGENT_VERSION.zip"
 }
 
 performTomcatDependencyDownload() {
@@ -242,7 +242,7 @@ installTomcat() {
 
 startTomcat() {
   writeControllerInfo "$RUN_PATH/AppServerAgent/conf/controller-info.xml" "JavaServer" "JavaServer01"
-  writeControllerInfo "$RUN_PATH/AppServerAgent/ver$APPSERVER_AGENT_VERSION/conf/controller-info.xml" "JavaServer" "JavaServer01"
+  writeControllerInfo "$RUN_PATH/AppServerAgent/ver$JAVA_AGENT_VERSION/conf/controller-info.xml" "JavaServer" "JavaServer01"
   export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
   startProcess "Tomcat" "Tomcat Server (Port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR:"
 }
@@ -316,7 +316,7 @@ startMachineAgent() {
 
 startDatabaseAgent() {
   writeControllerInfo "$RUN_PATH/DatabaseAgent/conf/controller-info.xml"
-  startProcess "DatabaseAgent" "Database Agent" "java -Dappdynamics.controller.hostName=$CONTROLLER_ADDRESS -Dappdynamics.controller.port=$CONTROLLER_PORT -Dappdynamics.controller.ssl.enabled=$SSL -Dappdynamics.agent.accountName=$ACCOUNT_NAME -Dappdynamics.agent.accountAccessKey=$ACCOUNT_ACCESS_KEY -jar $RUN_PATH/DatabaseAgent/db-agent.jar" "NOWAIT"
+  startProcess "DatabaseAgent" "Database Agent" "java -Dappdynamics.controller.hostName=$CONTROLLER_ADDRESS -Dappdynamics.controller.port=$CONTROLLER_PORT -Dappdynamics.controller.ssl.enabled=$CONTROLLER_SSL -Dappdynamics.agent.accountName=$ACCOUNT_NAME -Dappdynamics.agent.accountAccessKey=$ACCOUNT_ACCESS_KEY -jar $RUN_PATH/DatabaseAgent/db-agent.jar" "NOWAIT"
 }
 
 startNode() {
@@ -332,7 +332,7 @@ require(\"appdynamics\").profile({
     tierName: \"NodeServer\",
     nodeName: \"NodeServer01\"
 });
-  " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
+  " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$CONTROLLER_SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
   cat "$SCRIPT_DIR/src/server.js" >> "$RUN_PATH/node/server.js"
   ln -sf "$RUN_PATH/node_modules/angular/" "$SCRIPT_DIR/src/public/angular"
   ln -sf "$RUN_PATH/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"

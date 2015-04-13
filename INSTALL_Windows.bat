@@ -5,16 +5,16 @@ TITLE AppDynamicsSampleApp
 SETLOCAL enabledelayedexpansion
 
 REM Configure these values on download.
-SET ACCOUNT_NAME=
-SET ACCOUNT_ACCESS_KEY=
-SET CONTROLLER_ADDRESS=false
-SET CONTROLLER_PORT=false
-SET SSL=false
-SET MACHINE_AGENT_VERSION=4.0.1.0
-SET DATABASE_AGENT_VERSION=4.0.1.0
-SET APPSERVER_AGENT_VERSION=4.0.1.0
+SET ACCOUNT_NAME=config-account-name
+SET ACCOUNT_ACCESS_KEY=config-account-access-key
+SET CONTROLLER_ADDRESS=config-controller-host
+SET CONTROLLER_PORT=config-controller-port
+SET CONTROLLER_SSL=config-controller-ssl-enabled
+SET DATABASE_AGENT_VERSION=config-database-agent-version
+SET JAVA_AGENT_VERSION=config-java-agent-version
+SET MACHINE_AGENT_VERSION=config-machine-agent-version
 
-SET APPLICATION_NAME=SampleApplicationWindows
+SET APPLICATION_NAME=AppDynamics Sample App (Windows)
 SET BACKEND_PORT=8887
 SET HTTP_PORT=8888
 SET MYSQL_PORT=3306
@@ -82,7 +82,7 @@ if (%1)==() GOTO :startup
   if /I %1 == -p SET CONTROLLER_PORT=%~2& shift
   if /I %1 == -u SET ACCOUNT_NAME=%~2& shift
   if /I %1 == -k SET ACCOUNT_ACCESS_KEY=%~2& shift
-  if /I %1 == -s SET SSL=%~2& shift
+  if /I %1 == -s SET CONTROLLER_SSL=%~2& shift
   if /I %1 == -n SET HTTP_PORT=%~2& shift
   if /I %1 == -j SET BACKEND_PORT=%~2& shift
   if /I %1 == -m SET MYSQL_PORT=%~2& shift
@@ -124,7 +124,7 @@ GOTO :EOF
   echo ^<controller-info^> >> "%WRITE_FILE%"
 	echo ^<controller-host^>%CONTROLLER_ADDRESS%^</controller-host^> >> "%WRITE_FILE%"
 	echo ^<controller-port^>%CONTROLLER_PORT%^</controller-port^>  >> "%WRITE_FILE%"
-	echo ^<controller-ssl-enabled^>%SSL%^</controller-ssl-enabled^> >> "%WRITE_FILE%"
+	echo ^<controller-ssl-enabled^>%CONTROLLER_SSL%^</controller-ssl-enabled^> >> "%WRITE_FILE%"
 	echo ^<account-name^>%ACCOUNT_NAME%^</account-name^> >> "%WRITE_FILE%"
 	echo ^<account-access-key^>%ACCOUNT_ACCESS_KEY%^</account-access-key^> >> "%WRITE_FILE%"
 	echo ^<application-name^>%APPLICATION_NAME%^</application-name^> >> "%WRITE_FILE%"
@@ -275,7 +275,7 @@ GOTO :EOF
 :installAgents
   CALL :agentInstall "MachineAgent" "machineagent.jar" "https://download.appdynamics.com/saas/public/archives/%MACHINE_AGENT_VERSION%/MachineAgent-%MACHINE_AGENT_VERSION%.zip"
   CALL :agentInstall "DatabaseAgent" "db-agent.jar" "https://download.appdynamics.com/saas/public/archives/%DATABASE_AGENT_VERSION%/dbagent-%DATABASE_AGENT_VERSION%.zip"
-  CALL :agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/%APPSERVER_AGENT_VERSION%/AppServerAgent-%APPSERVER_AGENT_VERSION%.zip"
+  CALL :agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/%JAVA_AGENT_VERSION%/AppServerAgent-%JAVA_AGENT_VERSION%.zip"
 GOTO :EOF
 
 :startMachineAgent
@@ -287,12 +287,12 @@ GOTO :EOF
 :startDatabaseAgent
   echo Starting Database Agent...
   CALL :writeControllerInfo "%RUN_PATH%\DatabaseAgent\conf\controller-info.xml"
-  start "_AppDynamicsSampleApp_ Database Agent" /MIN "%JAVA_HOME%\bin\java.exe" -Dappdynamics.controller.hostName=%CONTROLLER_ADDRESS% -Dappdynamics.controller.port=%CONTROLLER_PORT% -Dappdynamics.controller.ssl.enabled=%SSL% -Dappdynamics.agent.accountName=%ACCOUNT_NAME% -Dappdynamics.agent.accountAccessKey=%ACCOUNT_ACCESS_KEY% -jar %RUN_PATH%\DatabaseAgent\db-agent.jar
+  start "_AppDynamicsSampleApp_ Database Agent" /MIN "%JAVA_HOME%\bin\java.exe" -Dappdynamics.controller.hostName=%CONTROLLER_ADDRESS% -Dappdynamics.controller.port=%CONTROLLER_PORT% -Dappdynamics.controller.ssl.enabled=%CONTROLLER_SSL% -Dappdynamics.agent.accountName=%ACCOUNT_NAME% -Dappdynamics.agent.accountAccessKey=%ACCOUNT_ACCESS_KEY% -jar %RUN_PATH%\DatabaseAgent\db-agent.jar
 GOTO :EOF
 
 :startTomcat
   CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\conf\controller-info.xml" "JavaServer" "JavaServer01"
-  CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\ver%APPSERVER_AGENT_VERSION%\conf\controller-info.xml" "JavaServer" "JavaServer01"
+  CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\ver%JAVA_AGENT_VERSION%\conf\controller-info.xml" "JavaServer" "JavaServer01"
   SET JAVA_OPTS=-javaagent:%RUN_PATH%\AppServerAgent\javaagent.jar
   echo Starting Tomcat...
   start "_AppDynamicsSampleApp_ Tomcat" /MIN "%RUN_PATH%\tomcatrest\bin\SampleAppServer.bat"
