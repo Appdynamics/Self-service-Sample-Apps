@@ -45,16 +45,16 @@ export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 about() {
   cat "$SCRIPT_DIR/README"
   echo "
-* Note The following dependencies are required:
+* Note: The following utilities are required:
   - wget
   - unzip
-  - gzip
+
 "
 }
 
 usage() {
   about
-  printf "%s" "usage: sudo sh Appdemo.sh "
+  printf "%s" "usage: sudo sh INSTALL_Linux.sh "
   cat "$SCRIPT_DIR/usage"
   exit 0
 }

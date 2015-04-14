@@ -100,7 +100,7 @@ GOTO :EOF
 
 :usage
   CALL :about
-  echo usage: AppDemo.bat
+  echo usage: INSTALL_Windows.bat
   type "%SCRIPT_DIR%\usage"
   Exit /B 0
 GOTO :EOF
