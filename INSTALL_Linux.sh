@@ -12,6 +12,7 @@ MACHINE_AGENT_VERSION="config-machine-agent-version"
 NODE_AGENT_VERSION="config-node-agent-version"
 DOWNLOAD_URL_PREFIX="config-download-url-prefix"
 LOGIN_URL_PREFIX="config-login-url-prefix"
+CURL_AUTH=true
 
 APPLICATION_NAME="AppDynamics Sample App (Linux)"
 JAVA_PORT=8887
@@ -182,10 +183,18 @@ agentInstall() {
   mkdir -p "$RUN_PATH/$AGENT_DIR"
   if ! ${LOGGED_IN} ; then
     local USERNAME=""; local PASSWORD=""
+    local HTTP_USERNAME=""; local HTTP_PASSWORD=""
     while ! grep -s -q login.appdynamics.com "$RUN_PATH/cookies"; do
       if [ -f "$RUN_PATH/cookies" ]; then echo "Invalid Username/Password"; else echo "Please Sign in order to download AppDynamics Agents"; fi
+      if CURL_AUTH ; then
+        read -p "HTTP Username: " USERNAME && stty -echo && read -p "HTTP Password: " PASSWORD && stty echo && echo
+      fi
       read -p "Username: " USERNAME && stty -echo && read -p "Password: " PASSWORD && stty echo && echo
-      curl -q -o /dev/null --cookie-jar "$RUN_PATH/cookies" --data "username=$USERNAME&password=$PASSWORD" --insecure "$LOGIN_URL_PREFIX/sso/login/"
+      if CURL_AUTH ; then
+        curl -q -o /dev/null -L --cookie-jar "$RUN_PATH/cookies" -u "$HTTP_USERNAME:$HTTP_PASSWORD" --data "username=$USERNAME&password=$PASSWORD" --insecure "$LOGIN_URL_PREFIX/sso/login/"
+      else
+        curl -q -o /dev/null -L --cookie-jar "$RUN_PATH/cookies" --data "username=$USERNAME&password=$PASSWORD" --insecure "$LOGIN_URL_PREFIX/sso/login/"
+      fi
     done
     LOGGED_IN=true
   fi

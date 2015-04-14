@@ -16,6 +16,7 @@ SET MACHINE_AGENT_VERSION=config-machine-agent-version
 SET DOWNLOAD_URL_PREFIX=config-download-hostname
 SET DOWNLOAD_URL_PREFIX=config-download-url-prefix
 SET LOGIN_URL_PREFIX=config-login-url-prefix
+SET CURL_AUTH=true
 
 SET APPLICATION_NAME=AppDynamics Sample App (Windows)
 SET BACKEND_PORT=8887
@@ -246,6 +247,8 @@ GOTO :EOF
 :resetAgentUP
   SET __APPD_USERNAME=
   SET __APPD_PASSWORD=
+  SET __HTTP_APPD_PASSWORD=
+  SET __HTTP_APPD_PASSWORD=
 GOTO :EOF
 
 :agentInstall
@@ -260,9 +263,17 @@ GOTO :EOF
     if exist "%RUN_PATH\cookies" ( echo Invalid Username/Password
     ) else ( echo Please Sign in, in order to download AppDynamics Agents
     )
+    if %CURL_AUTH% == true (
+      SET /p __HTTP_APPD_USERNAME=Username:
+      SET /p __HTTP_APPD_PASSWORD=Password:
+    )
     SET /p __APPD_USERNAME=Username:
     SET /p __APPD_PASSWORD=Password:
-    %ucurl% -q -o NUL --cookie-jar "%RUN_PATH%\cookies" --data "username=%__APPD_USERNAME%&password=%__APPD_PASSWORD%" --insecure "%LOGIN_URL_PREFIX%/sso/login/" 1>NUL 2>&1
+    if %CURL_AUTH% == true (
+      %ucurl% -q -o NUL -L --cookie-jar "%RUN_PATH%\cookies" -u "%__HTTP_APPD_USERNAME%:%__HTTP_APPD_PASSWORD" --data "username=%__APPD_USERNAME%&password=%__APPD_PASSWORD%" --insecure "%LOGIN_URL_PREFIX%/sso/login/" 1>NUL 2>&1
+    ) else (
+      %ucurl% -q -o NUL -L --cookie-jar "%RUN_PATH%\cookies" --data "username=%__APPD_USERNAME%&password=%__APPD_PASSWORD%" --insecure "%LOGIN_URL_PREFIX%/sso/login/" 1>NUL 2>&1
+    )
     CALL :resetAgentUP
     if not exist "%RUN_PATH%\cookies" GOTO :agentInstallLoop
     findstr /m "login.appdynamics.com" "%RUN_PATH%\cookies" 1>NUL 2>&1
