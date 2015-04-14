@@ -6,11 +6,11 @@ ACCOUNT_ACCESS_KEY="config-account-access-key"
 CONTROLLER_ADDRESS="config-controller-host"
 CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
-DATABASE_AGENT_VERSION="config-database-agent-version"
-JAVA_AGENT_VERSION="config-java-agent-version"
-MACHINE_AGENT_VERSION="config-machine-agent-version"
-NODE_AGENT_VERSION="config-node-agent-version"
-DOWNLOAD_HOSTNAME="config-download-hostname"
+DATABASE_AGENT_VERSION="4.0.1.0"
+JAVA_AGENT_VERSION="4.0.1.0"
+MACHINE_AGENT_VERSION="4.0.1.0"
+NODE_AGENT_VERSION="4.0.1"
+DOWNLOAD_HOSTNAME="download.appdynamics.com"
 
 APPLICATION_NAME="AppDynamics Sample App (Linux)"
 JAVA_PORT=8887
@@ -24,9 +24,7 @@ PROMPT_EACH_REQUEST=false
 TIMEOUT=150
 APP_STARTED=false
 
-pushd `dirname $0` > /dev/null
-SCRIPT_DIR=`pwd -P`
-popd > /dev/null
+SCRIPT_DIR="$(readlink -f "$0" | xargs dirname)"
 
 RUN_PATH="/var/tmp/AppDynamicsSampleApp"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
@@ -46,9 +44,8 @@ about() {
   cat "$SCRIPT_DIR/README"
   echo "
 * Note The following dependencies are required:
-  - wget
+  - curl
   - unzip
-  - gzip
 "
 }
 
@@ -172,9 +169,8 @@ verifyDependency() {
 }
 
 installDependencies() {
-  verifyDependency "wget"
+  verifyDependency "curl"
   verifyDependency "unzip"
-  verifyDependency "gzip"
 }
 
 LOGGED_IN=false
@@ -188,11 +184,11 @@ agentInstall() {
     while ! grep -s -q login.appdynamics.com "$RUN_PATH/cookies"; do
       if [ -f "$RUN_PATH/cookies" ]; then echo "Invalid Username/Password"; else echo "Please Sign in order to download AppDynamics Agents"; fi
       read -p "Username: " USERNAME && stty -echo && read -p "Password: " PASSWORD && stty echo && echo
-      wget -q -O/dev/null --save-cookies "$RUN_PATH/cookies" --post-data "username=$USERNAME&password=$PASSWORD" --no-check-certificate "https://login.appdynamics.com/sso/login/"
+      curl -q -o /dev/null --cookie-jar "$RUN_PATH/cookies" --data "username=$USERNAME&password=$PASSWORD" --insecure "https://login.appdynamics.com/sso/login/"
     done
     LOGGED_IN=true
   fi
-  wget --load-cookies "$RUN_PATH/cookies" "$AGENT_URL" -O "$RUN_PATH/$AGENT_DIR/$AGENT_DIR.zip"
+  curl -q -L -o "$RUN_PATH/$AGENT_DIR/$AGENT_DIR.zip" --cookie "$RUN_PATH/cookies" --insecure "$AGENT_URL"
   echo "Unpacking $AGENT_DIR (this may take a few minutes)..."
   unzip "$RUN_PATH/$AGENT_DIR/$AGENT_DIR.zip" -d "$RUN_PATH/$AGENT_DIR" >/dev/null; rm "$RUN_PATH/$AGENT_DIR/$AGENT_DIR.zip"
   if [ ! -f "$RUN_PATH/$AGENT_DIR/$AGENT_CHECK_FILE" ]; then echo "Bad Agent Archive: $AGENT_DIR.zip, exiting."; exit 1; fi
@@ -207,8 +203,8 @@ installAgents() {
 performTomcatDependencyDownload() {
   local TOMCAT_URL=$1
   if [ -f "$RUN_PATH/tomcatrest/repo/$TOMCAT_URL" ]; then return 0; fi
-  mkdir -p $(dirname "$RUN_PATH/tomcatrest/repo/$TOMCAT_URL")
-  wget -O "$RUN_PATH/tomcatrest/repo/$TOMCAT_URL" "http://repo.maven.apache.org/maven2/$TOMCAT_URL"
+  echo "Downloading http://repo.maven.apache.org/maven2/$TOMCAT_URL"
+  curl -q --create-dirs -L -o "$RUN_PATH/tomcatrest/repo/$TOMCAT_URL" "http://repo.maven.apache.org/maven2/$TOMCAT_URL"
 }
 
 installTomcat() {
@@ -257,7 +253,7 @@ installNode() {
   setupNodeNvm
   if ! command -v nvm 2>/dev/null >/dev/null ; then
     verifyUserAgreement "Node needs to be downloaded, do you wish to continue?"
-    wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.23.3/install.sh | NVM_DIR="$NVM_DIR" sh;
+    curl https://raw.githubusercontent.com/creationix/nvm/v0.23.3/install.sh | NVM_DIR="$NVM_DIR" sh;
     echo "Inititalizing nvm automatically..."
     setupNodeNvm
   fi
