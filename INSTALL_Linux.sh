@@ -6,9 +6,6 @@ ACCOUNT_ACCESS_KEY="config-account-access-key"
 CONTROLLER_ADDRESS="config-controller-host"
 CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
-DATABASE_AGENT_VERSION="config-database-agent-version"
-JAVA_AGENT_VERSION="config-java-agent-version"
-MACHINE_AGENT_VERSION="config-machine-agent-version"
 NODE_AGENT_VERSION="config-node-agent-version"
 
 APPLICATION_NAME="AppDynamics Sample App (Linux)"
@@ -183,9 +180,9 @@ agentInstall() {
 }
 
 installAgents() {
-  agentInstall "MachineAgent" "machineagent.jar" "MachineAgent-$MACHINE_AGENT_VERSION.zip"
-  agentInstall "DatabaseAgent" "db-agent.jar" "dbagent-$DATABASE_AGENT_VERSION.zip"
-  agentInstall "AppServerAgent" "javaagent.jar" "AppServerAgent-$JAVA_AGENT_VERSION.zip"
+  agentInstall "MachineAgent" "machineagent.jar" "appdynamics-machine-agent.zip"
+  agentInstall "DatabaseAgent" "db-agent.jar" "appdynamics-database-agent.zip"
+  agentInstall "AppServerAgent" "javaagent.jar" "appdynamics-java-agent.zip"
 }
 
 performTomcatDependencyDownload() {

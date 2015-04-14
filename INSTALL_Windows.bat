@@ -10,9 +10,6 @@ SET ACCOUNT_ACCESS_KEY=config-account-access-key
 SET CONTROLLER_ADDRESS=config-controller-host
 SET CONTROLLER_PORT=config-controller-port
 SET CONTROLLER_SSL=config-controller-ssl-enabled
-SET DATABASE_AGENT_VERSION=config-database-agent-version
-SET JAVA_AGENT_VERSION=config-java-agent-version
-SET MACHINE_AGENT_VERSION=config-machine-agent-version
 
 SET APPLICATION_NAME=AppDynamics Sample App (Windows)
 SET BACKEND_PORT=8887
@@ -252,9 +249,9 @@ GOTO :EOF
 GOTO :EOF
 
 :installAgents
-  CALL :agentInstall "MachineAgent" "machineagent.jar" "MachineAgent-%MACHINE_AGENT_VERSION%.zip"
-  CALL :agentInstall "DatabaseAgent" "db-agent.jar" "dbagent-%DATABASE_AGENT_VERSION%.zip"
-  CALL :agentInstall "AppServerAgent" "javaagent.jar" "AppServerAgent-%JAVA_AGENT_VERSION%.zip"
+  CALL :agentInstall "MachineAgent" "machineagent.jar" "appdynamics-machine-agent.zip"
+  CALL :agentInstall "DatabaseAgent" "db-agent.jar" "appdynamics-database-agent.zip"
+  CALL :agentInstall "AppServerAgent" "javaagent.jar" "appdynamics-java-agent.zip"
 GOTO :EOF
 
 :startMachineAgent
