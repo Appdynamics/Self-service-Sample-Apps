@@ -51,7 +51,7 @@ about() {
 
 usage() {
   about
-  printf "%s" "usage: sudo sh Appdemo.sh "
+  printf "%s" "usage: sudo sh INSTALL_Linux.sh "
   cat "$SCRIPT_DIR/usage"
   exit 0
 }
