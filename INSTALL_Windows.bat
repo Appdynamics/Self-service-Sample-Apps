@@ -240,12 +240,12 @@ GOTO :EOF
 :agentInstall
   SET AGENT_DIR=%~1
   SET AGENT_CHECK_FILE=%~2
-  SET AGENT_URL=%~3
+  SET AGENT_FILENAME=%~3
   echo Verifying/Installing AppDynamics %AGENT_DIR%...
   if exist "%RUN_PATH%\%AGENT_DIR%\%AGENT_CHECK_FILE%" echo INSTALLED & GOTO :EOF
   mkdir %RUN_PATH%\%AGENT_DIR% 2>NUL
   echo Unpacking %AGENT_DIR% (this may take a few minutes)...
-  CALL :performUnzip "%SCRIPT_DIR%\agents\%AGENT_URL%" "%RUN_PATH%\%AGENT_DIR%"
+  CALL :performUnzip "%SCRIPT_DIR%\agents\%AGENT_FILENAME%" "%RUN_PATH%\%AGENT_DIR%"
 GOTO :EOF
 
 :installAgents

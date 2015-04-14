@@ -33,4 +33,4 @@ unix2dos "$SCRIPT_DIR/vbs/unzip.vbs"
 
 # Create Zip file
 rm -rf "$SCRIPT_DIR/appdynamics-sample-app.zip"
-zip "$SCRIPT_DIR/appdynamics-sample-app.zip" -r "INSTALL_Linux.sh" "INSTALL_Mac.bat" "INSTALL_Windows.bat" README usage sampleapp src vbs
+zip "$SCRIPT_DIR/appdynamics-sample-app.zip" -r "INSTALL_Linux.sh" "INSTALL_Mac.sh" "INSTALL_Windows.bat" README usage sampleapp src vbs

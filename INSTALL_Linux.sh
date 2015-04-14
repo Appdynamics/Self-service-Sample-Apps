@@ -171,12 +171,12 @@ installDependencies() {
 
 LOGGED_IN=false
 agentInstall() {
-  local AGENT_DIR=$1; local AGENT_CHECK_FILE=$2; local AGENT_URL=$3
+  local AGENT_DIR=$1; local AGENT_CHECK_FILE=$2; local AGENT_FILENAME=$3
   echo "Verifying/Install AppDynamics $AGENT_DIR..."
   if [ -f "$RUN_PATH/$AGENT_DIR/$AGENT_CHECK_FILE" ]; then echo "INSTALLED"; return 0; fi
   mkdir -p "$RUN_PATH/$AGENT_DIR"
   echo "Unpacking $AGENT_DIR (this may take a few minutes)..."
-  unzip "$SCRIPT_DIR/agents/$AGENT_URL" -d "$RUN_PATH/$AGENT_DIR" >/dev/null
+  unzip "$SCRIPT_DIR/agents/$AGENT_FILENAME" -d "$RUN_PATH/$AGENT_DIR" >/dev/null
 }
 
 installAgents() {
