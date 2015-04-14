@@ -10,7 +10,8 @@ DATABASE_AGENT_VERSION="config-database-agent-version"
 JAVA_AGENT_VERSION="config-java-agent-version"
 MACHINE_AGENT_VERSION="config-machine-agent-version"
 NODE_AGENT_VERSION="config-node-agent-version"
-DOWNLOAD_URL_PREFIX="config-download-hostname"
+DOWNLOAD_URL_PREFIX="config-download-url-prefix"
+LOGIN_URL_PREFIX="config-login-url-prefix"
 
 APPLICATION_NAME="AppDynamics Sample App (Linux)"
 JAVA_PORT=8887
@@ -51,7 +52,7 @@ about() {
 
 usage() {
   about
-  printf "%s" "usage: sudo sh INSTALL_Linux.sh "
+  printf "%s" "usage: sudo sh Appdemo.sh "
   cat "$SCRIPT_DIR/usage"
   exit 0
 }
@@ -184,7 +185,7 @@ agentInstall() {
     while ! grep -s -q login.appdynamics.com "$RUN_PATH/cookies"; do
       if [ -f "$RUN_PATH/cookies" ]; then echo "Invalid Username/Password"; else echo "Please Sign in order to download AppDynamics Agents"; fi
       read -p "Username: " USERNAME && stty -echo && read -p "Password: " PASSWORD && stty echo && echo
-      curl -q -o /dev/null --cookie-jar "$RUN_PATH/cookies" --data "username=$USERNAME&password=$PASSWORD" --insecure "https://login.appdynamics.com/sso/login/"
+      curl -q -o /dev/null --cookie-jar "$RUN_PATH/cookies" --data "username=$USERNAME&password=$PASSWORD" --insecure "$LOGIN_URL_PREFIX/sso/login/"
     done
     LOGGED_IN=true
   fi

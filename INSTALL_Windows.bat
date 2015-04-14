@@ -14,6 +14,8 @@ SET DATABASE_AGENT_VERSION=config-database-agent-version
 SET JAVA_AGENT_VERSION=config-java-agent-version
 SET MACHINE_AGENT_VERSION=config-machine-agent-version
 SET DOWNLOAD_URL_PREFIX=config-download-hostname
+SET DOWNLOAD_URL_PREFIX=config-download-url-prefix
+SET LOGIN_URL_PREFIX=config-login-url-prefix
 
 SET APPLICATION_NAME=AppDynamics Sample App (Windows)
 SET BACKEND_PORT=8887
@@ -100,7 +102,7 @@ GOTO :EOF
 
 :usage
   CALL :about
-  echo usage: INSTALL_Windows.bat
+  echo usage: AppDemo.bat
   type "%SCRIPT_DIR%\usage"
   Exit /B 0
 GOTO :EOF
@@ -260,7 +262,7 @@ GOTO :EOF
     )
     SET /p __APPD_USERNAME=Username:
     SET /p __APPD_PASSWORD=Password:
-    %ucurl% -q -o NUL --cookie-jar "%RUN_PATH%\cookies" --data "username=%__APPD_USERNAME%&password=%__APPD_PASSWORD%" --insecure "https://login.appdynamics.com/sso/login/" 1>NUL 2>&1
+    %ucurl% -q -o NUL --cookie-jar "%RUN_PATH%\cookies" --data "username=%__APPD_USERNAME%&password=%__APPD_PASSWORD%" --insecure "%LOGIN_URL_PREFIX%/sso/login/" 1>NUL 2>&1
     CALL :resetAgentUP
     if not exist "%RUN_PATH%\cookies" GOTO :agentInstallLoop
     findstr /m "login.appdynamics.com" "%RUN_PATH%\cookies" 1>NUL 2>&1
