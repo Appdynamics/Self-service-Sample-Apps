@@ -37,17 +37,23 @@ export APPD_MYSQL_PORT_FILE="$RUN_PATH/mysql.port"
 export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 
 about() {
-  cat "$SCRIPT_DIR/README"
   echo "
-* Note The following dependencies are required:
-  - curl
-  - unzip
+The following packages will be installed and configured:
+
+  - Apache Tomcat Standalone Instance
+  - AppDynamics Java App Server Agent
+  - AppDynamics Database Agent
+  - AppDynamics Machine Agent
+  - AppDynamics Node Agent
+  - NodeJS (with Express, Request, jQuery, Bootstrap, and Angular)
+
+Note: Your system must already have the following commands: curl, unzip
 "
 }
 
 usage() {
-  about
-  printf "%s" "usage: sudo sh Appdemo.sh "
+  echo ""
+  printf "%s" "usage: sudo sh INSTALL_Linux.sh "
   cat "$SCRIPT_DIR/usage"
   exit 0
 }
@@ -59,7 +65,7 @@ removeEnvironment() {
   exit 0
 }
 
-if ! [ $(id -u) = 0 ]; then echo "Please run this script as root!"; usage; fi
+if ! [ $(id -u) = 0 ]; then echo "Please run this script as root."; exit 0; fi
 while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
   case "$OPT" in
     c) CONTROLLER_ADDRESS=$OPTARG;;
@@ -81,30 +87,31 @@ while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
 done
 
 if [ ${CONTROLLER_ADDRESS} = false ]; then
-  echo "No Controller Address Specified!"; usage
+  echo "No controller address specified."; usage
 fi
 if [ ${CONTROLLER_PORT} = false ]; then
-  echo "No Controller Port Specified!"; usage
+  echo "No controller port specified."; usage
 fi
 
 verifyUserAgreement() {
   if [ "$2" != true ]; then
     if ${NOPROMPT} ; then return 0; fi
   fi
-  echo "$1"
   local RESPONSE=
-  while [ "$RESPONSE" != "Y" ]
-  do
-    read -p "Please input \"Y\" to accept, or \"n\" to decline and quit: " RESPONSE
-    if [ "$RESPONSE" = "n" ]; then exit 1; fi
+  while true; do
+    read -p "$1 " RESPONSE
+    case $RESPONSE in
+      [Yy]* ) break;;
+      [Nn]* ) exit;;
+    esac
   done
+  echo ""
 }
 
 startup() {
   about
   if ! ${PROMPT_EACH_REQUEST} ; then
-    verifyUserAgreement "Do you agree to install all of the required dependencies if they do not exist and continue?
-      (If you wish to be prompted before each operation run this script with the -z flag)"
+    verifyUserAgreement "Continue to install above dependencies? (y/n)"
     NOPROMPT=true
   fi
   APP_STARTED=true
@@ -117,16 +124,16 @@ escaper() {
 writeControllerInfo() {
   local WRITE_FILE="$1"; local TIER_NAME="$2"; local NODE_NAME="$3"
   printf "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-	<controller-info>
-		<controller-host>%s</controller-host>
-		<controller-port>%s</controller-port>
-		<controller-ssl-enabled>%s</controller-ssl-enabled>
-		<account-name>%s</account-name>
-		<account-access-key>%s</account-access-key>
-		<application-name>%s</application-name>
-		<tier-name>%s</tier-name>
-		<node-name>%s</node-name>
-	</controller-info>
+  <controller-info>
+    <controller-host>%s</controller-host>
+    <controller-port>%s</controller-port>
+    <controller-ssl-enabled>%s</controller-ssl-enabled>
+    <account-name>%s</account-name>
+    <account-access-key>%s</account-access-key>
+    <application-name>%s</application-name>
+    <tier-name>%s</tier-name>
+    <node-name>%s</node-name>
+  </controller-info>
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$CONTROLLER_SSL" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$APPLICATION_NAME" "$TIER_NAME" "$NODE_NAME" > "$WRITE_FILE"
 }
 
@@ -172,9 +179,10 @@ installDependencies() {
 LOGGED_IN=false
 agentInstall() {
   local AGENT_DIR=$1; local AGENT_CHECK_FILE=$2; local AGENT_FILENAME=$3
-  echo "Verifying/Install AppDynamics $AGENT_DIR..."
-  if [ -f "$RUN_PATH/$AGENT_DIR/$AGENT_CHECK_FILE" ]; then echo "INSTALLED"; return 0; fi
+  printf "Checking AppDynamics $AGENT_DIR... "
+  if [ -f "$RUN_PATH/$AGENT_DIR/$AGENT_CHECK_FILE" ]; then echo "done."; return 0; fi
   mkdir -p "$RUN_PATH/$AGENT_DIR"
+  echo ""
   echo "Unpacking $AGENT_DIR (this may take a few minutes)..."
   unzip "$SCRIPT_DIR/agents/$AGENT_FILENAME" -d "$RUN_PATH/$AGENT_DIR" >/dev/null
 }
@@ -236,7 +244,7 @@ setupNodeNvm() {
 }
 
 installNode() {
-  echo "Verifying/Installing Node..."
+  echo "Checking Node..."
   setupNodeNvm
   if ! command -v nvm 2>/dev/null >/dev/null ; then
     verifyUserAgreement "Node needs to be downloaded, do you wish to continue?"
@@ -246,50 +254,54 @@ installNode() {
   fi
   nvm install 0.10.33
 
-  echo "Verifying/Installing AppDynamics NodeJS Agent..."
-  if ! npm list appdynamics >/dev/null ; then npm install "appdynamics@$NODE_AGENT_VERSION"; else echo "Installed"; fi
+  printf "Checking AppDynamics NodeJS Agent... "
+  if ! npm list appdynamics >/dev/null ; then npm install "appdynamics@$NODE_AGENT_VERSION"; else echo "done."; fi
 
-  echo "Verifying/Installing Node Express..."
-  if ! npm list express >/dev/null ; then npm install express@4.12.3; else echo "Installed"; fi
+  printf "Checking Node Express... "
+  if ! npm list express >/dev/null ; then npm install express@4.12.3; else echo "done."; fi
 
-  echo "Verifying/Installing Node Request..."
-  if ! npm list request >/dev/null ; then npm install request@2.55.0; else echo "Installed"; fi
+  printf "Checking Node Request... "
+  if ! npm list request >/dev/null ; then npm install request@2.55.0; else echo "done."; fi
 
-  echo "Verifying/Installing jQuery..."
-  if ! npm list jquery >/dev/null ; then npm install jquery@2.1.3; else echo "Installed"; fi
+  printf "Checking jQuery... "
+  if ! npm list jquery >/dev/null ; then npm install jquery@2.1.3; else echo "done."; fi
 
-  echo "Verifying/Installing Bootstrap..."
-  if ! npm list bootstrap >/dev/null ; then npm install bootstrap@3.3.4; else echo "Installed"; fi
+  printf "Checking Bootstrap... "
+  if ! npm list bootstrap >/dev/null ; then npm install bootstrap@3.3.4; else echo "done."; fi
 
-  echo "Verifying/Installing AngularJS..."
-  if ! npm list angular >/dev/null ; then npm install angular@1.3.14; else echo "Installed"; fi
+  printf "Checking AngularJS... "
+  if ! npm list angular >/dev/null ; then npm install angular@1.3.14; else echo "done."; fi
 }
 
 verifyMySQL() {
-  echo "Verifying MySQL..."
+  printf "Checking MySQL..."
   if ! which mysql >/dev/null ; then
-    echo "Cannot find mysql, please make sure it is installed before continuing, exiting.";
+    echo "Cannot find mysql. Please make sure it is installed and in your PATH. Exiting.";
     exit 1;
   fi
   echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
+  echo " done."
 }
 
 verifyJava() {
-  echo "Verifying Java..."
+  printf "Checking Java..."
   if ! which java >/dev/null; then
-    echo "Cannot find java, please make sure it is installed before continuing, exiting."
+    echo "Cannot find java. Please make sure it is installed and in your PATH. Exiting."
     exit 1;
   fi
+  echo " done."
 }
 
 createMySQLDatabase() {
-  echo "Please login to mysql with root to setup the database for the demo application..."
+  echo ""
+  echo "Please enter your MySQL root password to install the sample app database."
   mysql -u root -p < "$SCRIPT_DIR/src/mysql.sql"
   if [ $? -ne 0 ]; then
     verifyUserAgreement "The mysql script install/check failed, do you wish to try again?" true
     createMySQLDatabase
   fi
   echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
+  echo ""
   return 0
 }
 
