@@ -13,7 +13,7 @@ SET CONTROLLER_SSL=config-controller-ssl-enabled
 SET DATABASE_AGENT_VERSION=config-database-agent-version
 SET JAVA_AGENT_VERSION=config-java-agent-version
 SET MACHINE_AGENT_VERSION=config-machine-agent-version
-DOWNLOAD_HOSTNAME=config-download-hostname
+SET DOWNLOAD_URL_PREFIX=config-download-hostname
 
 SET APPLICATION_NAME=AppDynamics Sample App (Windows)
 SET BACKEND_PORT=8887
@@ -274,9 +274,9 @@ GOTO :EOF
 GOTO :EOF
 
 :installAgents
-  CALL :agentInstall "MachineAgent" "machineagent.jar" "https://%DOWNLOAD_HOSTNAME%/saas/public/archives/%MACHINE_AGENT_VERSION%/MachineAgent-%MACHINE_AGENT_VERSION%.zip"
-  CALL :agentInstall "DatabaseAgent" "db-agent.jar" "https://%DOWNLOAD_HOSTNAME%/saas/public/archives/%DATABASE_AGENT_VERSION%/dbagent-%DATABASE_AGENT_VERSION%.zip"
-  CALL :agentInstall "AppServerAgent" "javaagent.jar" "https://%DOWNLOAD_HOSTNAME%/saas/public/archives/%JAVA_AGENT_VERSION%/AppServerAgent-%JAVA_AGENT_VERSION%.zip"
+  CALL :agentInstall "MachineAgent" "machineagent.jar" "%DOWNLOAD_URL_PREFIX%/saas/public/archives/%MACHINE_AGENT_VERSION%/MachineAgent-%MACHINE_AGENT_VERSION%.zip"
+  CALL :agentInstall "DatabaseAgent" "db-agent.jar" "%DOWNLOAD_URL_PREFIX%/saas/public/archives/%DATABASE_AGENT_VERSION%/dbagent-%DATABASE_AGENT_VERSION%.zip"
+  CALL :agentInstall "AppServerAgent" "javaagent.jar" "%DOWNLOAD_URL_PREFIX%/saas/public/archives/%JAVA_AGENT_VERSION%/AppServerAgent-%JAVA_AGENT_VERSION%.zip"
 GOTO :EOF
 
 :startMachineAgent

@@ -6,11 +6,11 @@ ACCOUNT_ACCESS_KEY="config-account-access-key"
 CONTROLLER_ADDRESS="config-controller-host"
 CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
-DATABASE_AGENT_VERSION="4.0.1.0"
-JAVA_AGENT_VERSION="4.0.1.0"
-MACHINE_AGENT_VERSION="4.0.1.0"
-NODE_AGENT_VERSION="4.0.1"
-DOWNLOAD_HOSTNAME="download.appdynamics.com"
+DATABASE_AGENT_VERSION="config-database-agent-version"
+JAVA_AGENT_VERSION="config-java-agent-version"
+MACHINE_AGENT_VERSION="config-machine-agent-version"
+NODE_AGENT_VERSION="config-node-agent-version"
+DOWNLOAD_URL_PREFIX="config-download-hostname"
 
 APPLICATION_NAME="AppDynamics Sample App (Linux)"
 JAVA_PORT=8887
@@ -195,9 +195,9 @@ agentInstall() {
 }
 
 installAgents() {
-  agentInstall "MachineAgent" "machineagent.jar" "https://$DOWNLOAD_HOSTNAME/saas/public/archives/$MACHINE_AGENT_VERSION/MachineAgent-$MACHINE_AGENT_VERSION.zip"
-  agentInstall "DatabaseAgent" "db-agent.jar" "https://$DOWNLOAD_HOSTNAME/saas/public/archives/$DATABASE_AGENT_VERSION/dbagent-$DATABASE_AGENT_VERSION.zip"
-  agentInstall "AppServerAgent" "javaagent.jar" "https://$DOWNLOAD_HOSTNAME/saas/public/archives/$JAVA_AGENT_VERSION/AppServerAgent-$JAVA_AGENT_VERSION.zip"
+  agentInstall "MachineAgent" "machineagent.jar" "$DOWNLOAD_URL_PREFIX/saas/public/archives/$MACHINE_AGENT_VERSION/MachineAgent-$MACHINE_AGENT_VERSION.zip"
+  agentInstall "DatabaseAgent" "db-agent.jar" "$DOWNLOAD_URL_PREFIX/saas/public/archives/$DATABASE_AGENT_VERSION/dbagent-$DATABASE_AGENT_VERSION.zip"
+  agentInstall "AppServerAgent" "javaagent.jar" "$DOWNLOAD_URL_PREFIX/saas/public/archives/$JAVA_AGENT_VERSION/AppServerAgent-$JAVA_AGENT_VERSION.zip"
 }
 
 performTomcatDependencyDownload() {
