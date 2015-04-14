@@ -8,7 +8,7 @@ CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
 NODE_AGENT_VERSION="config-node-agent-version"
 
-APPLICATION_NAME="AppDynamics Sample App (Linux)"
+APPLICATION_NAME="AppDynamics Sample App (Mac)"
 JAVA_PORT=8887
 NODE_PORT=8888
 MYSQL_PORT=3306
@@ -20,7 +20,9 @@ PROMPT_EACH_REQUEST=false
 TIMEOUT=150
 APP_STARTED=false
 
-SCRIPT_DIR="$(readlink -f "$0" | xargs dirname)"
+pushd `dirname $0` > /dev/null
+SCRIPT_DIR=`pwd -P`
+popd > /dev/null
 
 RUN_PATH="/var/tmp/AppDynamicsSampleApp"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
@@ -117,16 +119,16 @@ escaper() {
 writeControllerInfo() {
   local WRITE_FILE="$1"; local TIER_NAME="$2"; local NODE_NAME="$3"
   printf "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-	<controller-info>
-		<controller-host>%s</controller-host>
-		<controller-port>%s</controller-port>
-		<controller-ssl-enabled>%s</controller-ssl-enabled>
-		<account-name>%s</account-name>
-		<account-access-key>%s</account-access-key>
-		<application-name>%s</application-name>
-		<tier-name>%s</tier-name>
-		<node-name>%s</node-name>
-	</controller-info>
+  <controller-info>
+    <controller-host>%s</controller-host>
+    <controller-port>%s</controller-port>
+    <controller-ssl-enabled>%s</controller-ssl-enabled>
+    <account-name>%s</account-name>
+    <account-access-key>%s</account-access-key>
+    <application-name>%s</application-name>
+    <tier-name>%s</tier-name>
+    <node-name>%s</node-name>
+  </controller-info>
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$CONTROLLER_SSL" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$APPLICATION_NAME" "$TIER_NAME" "$NODE_NAME" > "$WRITE_FILE"
 }
 
