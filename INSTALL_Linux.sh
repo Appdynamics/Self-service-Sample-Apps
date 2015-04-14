@@ -10,6 +10,7 @@ DATABASE_AGENT_VERSION="config-database-agent-version"
 JAVA_AGENT_VERSION="config-java-agent-version"
 MACHINE_AGENT_VERSION="config-machine-agent-version"
 NODE_AGENT_VERSION="config-node-agent-version"
+DOWNLOAD_HOSTNAME="config-download-hostname"
 
 APPLICATION_NAME="AppDynamics Sample App (Linux)"
 JAVA_PORT=8887
@@ -198,9 +199,9 @@ agentInstall() {
 }
 
 installAgents() {
-  agentInstall "MachineAgent" "machineagent.jar" "https://download.appdynamics.com/saas/public/archives/$MACHINE_AGENT_VERSION/MachineAgent-$MACHINE_AGENT_VERSION.zip"
-  agentInstall "DatabaseAgent" "db-agent.jar" "https://download.appdynamics.com/saas/public/archives/$DATABASE_AGENT_VERSION/dbagent-$DATABASE_AGENT_VERSION.zip"
-  agentInstall "AppServerAgent" "javaagent.jar" "https://download.appdynamics.com/saas/public/archives/$JAVA_AGENT_VERSION/AppServerAgent-$JAVA_AGENT_VERSION.zip"
+  agentInstall "MachineAgent" "machineagent.jar" "https://$DOWNLOAD_HOSTNAME/saas/public/archives/$MACHINE_AGENT_VERSION/MachineAgent-$MACHINE_AGENT_VERSION.zip"
+  agentInstall "DatabaseAgent" "db-agent.jar" "https://$DOWNLOAD_HOSTNAME/saas/public/archives/$DATABASE_AGENT_VERSION/dbagent-$DATABASE_AGENT_VERSION.zip"
+  agentInstall "AppServerAgent" "javaagent.jar" "https://$DOWNLOAD_HOSTNAME/saas/public/archives/$JAVA_AGENT_VERSION/AppServerAgent-$JAVA_AGENT_VERSION.zip"
 }
 
 performTomcatDependencyDownload() {
