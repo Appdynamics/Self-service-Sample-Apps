@@ -13,10 +13,6 @@ SET CONTROLLER_SSL=config-controller-ssl-enabled
 SET DATABASE_AGENT_VERSION=config-database-agent-version
 SET JAVA_AGENT_VERSION=config-java-agent-version
 SET MACHINE_AGENT_VERSION=config-machine-agent-version
-SET DOWNLOAD_URL_PREFIX=config-download-hostname
-SET DOWNLOAD_URL_PREFIX=config-download-url-prefix
-SET LOGIN_URL_PREFIX=config-login-url-prefix
-SET CURL_AUTH=true
 
 SET APPLICATION_NAME=AppDynamics Sample App (Windows)
 SET BACKEND_PORT=8887
@@ -244,13 +240,6 @@ GOTO :EOF
   CALL :doNodeDependencyInstall angular@1.3.14
 GOTO :EOF
 
-:resetAgentUP
-  SET __APPD_USERNAME=
-  SET __APPD_PASSWORD=
-  SET __HTTP_APPD_PASSWORD=
-  SET __HTTP_APPD_PASSWORD=
-GOTO :EOF
-
 :agentInstall
   SET AGENT_DIR=%~1
   SET AGENT_CHECK_FILE=%~2
@@ -258,38 +247,14 @@ GOTO :EOF
   echo Verifying/Installing AppDynamics %AGENT_DIR%...
   if exist "%RUN_PATH%\%AGENT_DIR%\%AGENT_CHECK_FILE%" echo INSTALLED & GOTO :EOF
   mkdir %RUN_PATH%\%AGENT_DIR% 2>NUL
-  if not %LOGGED_IN% == true (
-    :agentInstallLoop
-    if exist "%RUN_PATH\cookies" ( echo Invalid Username/Password
-    ) else ( echo Please Sign in, in order to download AppDynamics Agents
-    )
-    if %CURL_AUTH% == true (
-      SET /p __HTTP_APPD_USERNAME=Username:
-      SET /p __HTTP_APPD_PASSWORD=Password:
-    )
-    SET /p __APPD_USERNAME=Username:
-    SET /p __APPD_PASSWORD=Password:
-    if %CURL_AUTH% == true (
-      %ucurl% -q -o NUL -L --cookie-jar "%RUN_PATH%\cookies" -u "%__HTTP_APPD_USERNAME%:%__HTTP_APPD_PASSWORD" --data "username=%__APPD_USERNAME%&password=%__APPD_PASSWORD%" --insecure "%LOGIN_URL_PREFIX%/sso/login/" 1>NUL 2>&1
-    ) else (
-      %ucurl% -q -o NUL -L --cookie-jar "%RUN_PATH%\cookies" --data "username=%__APPD_USERNAME%&password=%__APPD_PASSWORD%" --insecure "%LOGIN_URL_PREFIX%/sso/login/" 1>NUL 2>&1
-    )
-    CALL :resetAgentUP
-    if not exist "%RUN_PATH%\cookies" GOTO :agentInstallLoop
-    findstr /m "login.appdynamics.com" "%RUN_PATH%\cookies" 1>NUL 2>&1
-    if %ERRORLEVEL% == 1 GOTO :agentInstallLoop
-    SET LOGGED_IN=true
-  )
-  %ucurl% -q -L -o "%RUN_PATH%\%AGENT_DIR%.zip" --cookie "%RUN_PATH%\cookies" --insecure "%AGENT_URL%"
   echo Unpacking %AGENT_DIR% (this may take a few minutes)...
-  CALL :performUnzip "%RUN_PATH%\%AGENT_DIR%.zip" "%RUN_PATH%\%AGENT_DIR%"
-  DEL "%RUN_PATH%\%AGENT_DIR%.zip"
+  CALL :performUnzip "%SCRIPT_DIR%\agents\%AGENT_URL%" "%RUN_PATH%\%AGENT_DIR%"
 GOTO :EOF
 
 :installAgents
-  CALL :agentInstall "MachineAgent" "machineagent.jar" "%DOWNLOAD_URL_PREFIX%/saas/public/archives/%MACHINE_AGENT_VERSION%/MachineAgent-%MACHINE_AGENT_VERSION%.zip"
-  CALL :agentInstall "DatabaseAgent" "db-agent.jar" "%DOWNLOAD_URL_PREFIX%/saas/public/archives/%DATABASE_AGENT_VERSION%/dbagent-%DATABASE_AGENT_VERSION%.zip"
-  CALL :agentInstall "AppServerAgent" "javaagent.jar" "%DOWNLOAD_URL_PREFIX%/saas/public/archives/%JAVA_AGENT_VERSION%/AppServerAgent-%JAVA_AGENT_VERSION%.zip"
+  CALL :agentInstall "MachineAgent" "machineagent.jar" "MachineAgent-%MACHINE_AGENT_VERSION%.zip"
+  CALL :agentInstall "DatabaseAgent" "db-agent.jar" "dbagent-%DATABASE_AGENT_VERSION%.zip"
+  CALL :agentInstall "AppServerAgent" "javaagent.jar" "AppServerAgent-%JAVA_AGENT_VERSION%.zip"
 GOTO :EOF
 
 :startMachineAgent
