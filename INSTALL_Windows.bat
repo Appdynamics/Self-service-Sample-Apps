@@ -12,8 +12,8 @@ SET CONTROLLER_PORT=config-controller-port
 SET CONTROLLER_SSL=config-controller-ssl-enabled
 
 SET APPLICATION_NAME=AppDynamics Sample App (Windows)
-SET BACKEND_PORT=8887
-SET HTTP_PORT=8888
+SET JAVA_PORT=8887
+SET NODE_PORT=8888
 SET MYSQL_PORT=3306
 SET NODE_VERSION=0.10.33
 SET NOPROMPT=false
@@ -74,8 +74,8 @@ if (%1)==() GOTO :startup
   if /I %1 == -u SET ACCOUNT_NAME=%~2& shift
   if /I %1 == -k SET ACCOUNT_ACCESS_KEY=%~2& shift
   if /I %1 == -s SET CONTROLLER_SSL=%~2& shift
-  if /I %1 == -n SET HTTP_PORT=%~2& shift
-  if /I %1 == -j SET BACKEND_PORT=%~2& shift
+  if /I %1 == -n SET NODE_PORT=%~2& shift
+  if /I %1 == -j SET JAVA_PORT=%~2& shift
   if /I %1 == -m SET MYSQL_PORT=%~2& shift
 :GETOPTS_END
   shift
@@ -178,7 +178,7 @@ GOTO :EOF
 
 :installTomcat
   echo Setting up Tomcat...
-  echo %BACKEND_PORT% > "%APPD_TOMCAT_FILE%"
+  echo %JAVA_PORT% > "%APPD_TOMCAT_FILE%"
   mkdir %RUN_PATH%\tomcatrest\repo 2>NUL
   mkdir %RUN_PATH%\tomcatrest\bin 2>NUL
   xcopy /e /y "%SCRIPT_DIR%\sampleapp" "%RUN_PATH%\tomcatrest" >NUL
@@ -232,30 +232,32 @@ GOTO :EOF
 GOTO :EOF
 
 :agentInstall
-  SET AGENT_DIR=%~1
-  SET AGENT_CHECK_FILE=%~2
-  SET AGENT_FILENAME=%~3
-  echo Checking AppDynamics %AGENT_DIR%...
+  SET AGENT_NAME=%~1
+  SET AGENT_DIR=%~2
+  SET AGENT_CHECK_FILE=%~3
+  SET AGENT_FILENAME=%~4
+  echo Checking AppDynamics %AGENT_NAME%...
   if exist "%RUN_PATH%\%AGENT_DIR%\%AGENT_CHECK_FILE%" echo INSTALLED & GOTO :EOF
   mkdir %RUN_PATH%\%AGENT_DIR% 2>NUL
-  echo Unpacking %AGENT_DIR% (this may take a few minutes)...
+  echo Unpacking %AGENT_NAME% (this may take a few minutes)...
   CALL :performUnzip "%SCRIPT_DIR%\agents\%AGENT_FILENAME%" "%RUN_PATH%\%AGENT_DIR%"
+  echo Finished unpacking %AGENT_NAME%.
 GOTO :EOF
 
 :installAgents
-  CALL :agentInstall "MachineAgent" "machineagent.jar" "appdynamics-machine-agent.zip"
-  CALL :agentInstall "DatabaseAgent" "db-agent.jar" "appdynamics-database-agent.zip"
-  CALL :agentInstall "AppServerAgent" "javaagent.jar" "appdynamics-java-agent.zip"
+  CALL :agentInstall "App Agent for Java" "AppServerAgent" "javaagent.jar" "appdynamics-java-agent.zip"
+  CALL :agentInstall "Database Agent" "DatabaseAgent" "db-agent.jar" "appdynamics-database-agent.zip"
+  CALL :agentInstall "MachineAgent" "MachineAgent" "machineagent.jar" "appdynamics-machine-agent.zip"
 GOTO :EOF
 
 :startMachineAgent
-  echo Starting Machine Agent...
+  echo Starting AppDynamics Machine Agent...
   CALL :writeControllerInfo "%RUN_PATH%\MachineAgent\conf\controller-info.xml"
   start "_AppDynamicsSampleApp_ Machine Agent" /MIN "%JAVA_HOME%\bin\java.exe" -jar %RUN_PATH%\MachineAgent\machineagent.jar
 GOTO :EOF
 
 :startDatabaseAgent
-  echo Starting Database Agent...
+  echo Starting AppDynamics Database Agent...
   CALL :writeControllerInfo "%RUN_PATH%\DatabaseAgent\conf\controller-info.xml"
   start "_AppDynamicsSampleApp_ Database Agent" /MIN "%JAVA_HOME%\bin\java.exe" -jar %RUN_PATH%\DatabaseAgent\db-agent.jar
 GOTO :EOF
@@ -266,7 +268,7 @@ GOTO :EOF
     CALL :writeControllerInfo "%%d\conf\controller-info.xml" "JavaServer" "JavaServer01"
   )
   SET JAVA_OPTS=-javaagent:%RUN_PATH%\AppServerAgent\javaagent.jar
-  echo Starting Tomcat...
+  echo Starting Tomcat server (port %JAVA_PORT%)...
   start "_AppDynamicsSampleApp_ Tomcat" /MIN "%RUN_PATH%\tomcatrest\bin\SampleAppServer.bat"
 GOTO :EOF
 
@@ -278,13 +280,13 @@ GOTO :EOF
   if not exist "%RUN_PATH%\node\public\bootstrap" mklink /D "%SCRIPT_DIR%\src\public\bootstrap" "%NODE_PATH%\bootstrap\dist" >NUL
   if not exist "%RUN_PATH%\node\public\jquery" mklink /D "%SCRIPT_DIR%\src\public\jquery" "%NODE_PATH%\jquery\dist" >NUL
   if not exist "%RUN_PATH%\node\public" mklink /D "%RUN_PATH%\node\public" "%SCRIPT_DIR%\src\public" >NUL
-  echo Starting Node...
+  echo Starting Node server (port %NODE_PORT%)...
   start "_AppDynamicsSampleApp_ Node" /MIN "%node%" "%RUN_PATH%\node\server.js"
 GOTO :EOF
 
 :startup
-  if %CONTROLLER_ADDRESS%==false echo No Controller Address Specified! & GOTO :usage
-  if %CONTROLLER_PORT%==false echo No Controller Port Specified! & GOTO :usage
+  if %CONTROLLER_ADDRESS%==false echo No controller address specified. & GOTO :usage
+  if %CONTROLLER_PORT%==false echo No controller port specified. & GOTO :usage
   CALL :about
   if not %PROMPT_EACH_REQUEST% == true (
     CALL :verifyUserAgreement "Do you agree to install all of the required dependencies if they do not exist and continue?"
@@ -306,7 +308,7 @@ GOTO :EOF
   echo The AppDynamics Sample App Environment has been started.
   echo Please wait a moment for the environment to initialize.
   echo.
-  echo Then go here to generate load:  http://localhost:%HTTP_PORT%
+  echo Then go here to generate load:  http://localhost:%NODE_PORT%
   echo.
   echo Press any key to quit...
   Pause >NUL

@@ -8,13 +8,13 @@ CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
 NODE_AGENT_VERSION="config-nodejs-agent-version"
 
-# Linux-specific config 
-
+# Linux-specific config
 APPLICATION_NAME="AppDynamics Sample App (Linux)"
+SCRIPT_NAME="INSTALL_Linux.sh"
 SCRIPT_DIR="$(readlink -f "$0" | xargs dirname)"
 
 
-####  ALL FOLLOWING CODE SHARED BETWEEN Linux/Mac  ####
+####  ALL FOLLOWING CODE SHARED BETWEEN LINUX AND MAC  ####
 
 JAVA_PORT=8887
 NODE_PORT=8888
@@ -45,11 +45,11 @@ about() {
 The following packages will be installed and configured:
 
   - Apache Tomcat Standalone Instance
-  - AppDynamics Java App Server Agent
+  - AppDynamics App Agent for Java
   - AppDynamics Database Agent
   - AppDynamics Machine Agent
   - AppDynamics Node Agent
-  - NodeJS (with Express, Request, jQuery, Bootstrap, and Angular)
+  - Node.js (with nvm, npm, Express, Request, jQuery, Bootstrap, and Angular)
 
 Note: Your system must already have the following commands: curl, unzip
 "
@@ -57,7 +57,7 @@ Note: Your system must already have the following commands: curl, unzip
 
 usage() {
   echo ""
-  printf "%s" "usage: sudo sh INSTALL_Linux.sh "
+  printf "%s" "usage: sudo sh $SCRIPT_NAME "
   cat "$SCRIPT_DIR/usage"
   exit 0
 }
@@ -69,7 +69,7 @@ removeEnvironment() {
   exit 0
 }
 
-if ! [ $(id -u) = 0 ]; then echo "Please run this script as root."; exit 0; fi
+if ! [ $(id -u) = 0 ]; then echo "Please run this script as root: sudo sh $SCRIPT_NAME"; exit 0; fi
 while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
   case "$OPT" in
     c) CONTROLLER_ADDRESS=$OPTARG;;
@@ -106,7 +106,7 @@ verifyUserAgreement() {
     read -p "$1 (y/n) " RESPONSE
     case $RESPONSE in
       [Yy]* ) break;;
-      [Nn]* ) exit;;
+      [Nn]* ) echo "Exiting."; exit;;
     esac
   done
   echo ""
@@ -164,14 +164,14 @@ startProcess() {
       echo "Unable to start $PROCESS_NAME, exiting."
       exit 1
     fi
-    echo "$PROCESS_NAME Started"
+    echo "$PROCESS_NAME started."
     rm "$RUN_PATH/status-$LOG_KEY"
   fi
 }
 
 verifyDependency() {
   local INSTALL_FILE="$1"
-  if ! which "$INSTALL_FILE" >/dev/null ; then echo "$INSTALL_FILE is required before this script can be executed, exiting."; exit 1; fi
+  if ! which "$INSTALL_FILE" >/dev/null ; then echo "$INSTALL_FILE is required before this script can be executed. Exiting."; exit 1; fi
   return 0
 }
 
@@ -182,19 +182,19 @@ installDependencies() {
 
 LOGGED_IN=false
 agentInstall() {
-  local AGENT_DIR=$1; local AGENT_CHECK_FILE=$2; local AGENT_FILENAME=$3
-  printf "Checking AppDynamics $AGENT_DIR... "
-  if [ -f "$RUN_PATH/$AGENT_DIR/$AGENT_CHECK_FILE" ]; then echo "done."; return 0; fi
+  local AGENT_NAME=$1; AGENT_DIR=$2; local AGENT_CHECK_FILE=$3; local AGENT_FILENAME=$4
+  echo "Installing AppDynamics $AGENT_NAME... "
+  if [ -f "$RUN_PATH/$AGENT_DIR/$AGENT_CHECK_FILE" ]; then echo "Already installed."; return 0; fi
   mkdir -p "$RUN_PATH/$AGENT_DIR"
-  echo ""
-  echo "Unpacking $AGENT_DIR (this may take a few minutes)..."
+  echo "Unpacking AppDynamics $AGENT_NAME (this may take a few minutes)..."
   unzip "$SCRIPT_DIR/agents/$AGENT_FILENAME" -d "$RUN_PATH/$AGENT_DIR" >/dev/null
+  echo "Finished unpacking AppDynamics $AGENT_NAME."
 }
 
 installAgents() {
-  agentInstall "MachineAgent" "machineagent.jar" "appdynamics-machine-agent.zip"
-  agentInstall "DatabaseAgent" "db-agent.jar" "appdynamics-database-agent.zip"
-  agentInstall "AppServerAgent" "javaagent.jar" "appdynamics-java-agent.zip"
+  agentInstall "App Agent for Java" "AppServerAgent" "javaagent.jar" "appdynamics-java-agent.zip"
+  agentInstall "Database Agent" "DatabaseAgent" "db-agent.jar" "appdynamics-database-agent.zip"
+  agentInstall "Machine Agent" "MachineAgent" "machineagent.jar" "appdynamics-machine-agent.zip"
 }
 
 performTomcatDependencyDownload() {
@@ -240,7 +240,7 @@ startTomcat() {
     writeControllerInfo "$dir/conf/controller-info.xml" "JavaServer" "JavaServer01"
   done
   export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
-  startProcess "Tomcat" "Tomcat Server (Port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR:"
+  startProcess "tomcat" "Tomcat server (port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR:"
 }
 
 setupNodeNvm() {
@@ -248,33 +248,33 @@ setupNodeNvm() {
 }
 
 installNode() {
-  echo "Checking Node..."
+  echo "Installing Node..."
   setupNodeNvm
   if ! command -v nvm 2>/dev/null >/dev/null ; then
-    verifyUserAgreement "Node needs to be downloaded, do you wish to continue?"
+    verifyUserAgreement "Node needs to be downloaded. Do you wish to continue?"
     curl https://raw.githubusercontent.com/creationix/nvm/v0.23.3/install.sh | NVM_DIR="$NVM_DIR" sh;
-    echo "Inititalizing nvm automatically..."
+    echo "Initializing nvm automatically..."
     setupNodeNvm
   fi
   nvm install 0.10.33
 
-  printf "Checking AppDynamics NodeJS Agent... "
-  if ! npm list appdynamics >/dev/null ; then npm install "appdynamics@$NODE_AGENT_VERSION"; else echo "done."; fi
+  echo "Installing AppDynamics Node.js Agent... "
+  if ! npm list appdynamics >/dev/null ; then npm install "appdynamics@$NODE_AGENT_VERSION"; else echo "Already installed."; fi
 
-  printf "Checking Node Express... "
-  if ! npm list express >/dev/null ; then npm install express@4.12.3; else echo "done."; fi
+  echo "Installing Node Express... "
+  if ! npm list express >/dev/null ; then npm install express@4.12.3; else echo "Already installed."; fi
 
-  printf "Checking Node Request... "
-  if ! npm list request >/dev/null ; then npm install request@2.55.0; else echo "done."; fi
+  echo "Installing Node Request... "
+  if ! npm list request >/dev/null ; then npm install request@2.55.0; else echo "Already installed."; fi
 
-  printf "Checking jQuery... "
-  if ! npm list jquery >/dev/null ; then npm install jquery@2.1.3; else echo "done."; fi
+  echo "Installing jQuery... "
+  if ! npm list jquery >/dev/null ; then npm install jquery@2.1.3; else echo "Already installed."; fi
 
-  printf "Checking Bootstrap... "
-  if ! npm list bootstrap >/dev/null ; then npm install bootstrap@3.3.4; else echo "done."; fi
+  echo "Installing Bootstrap... "
+  if ! npm list bootstrap >/dev/null ; then npm install bootstrap@3.3.4; else echo "Already installed."; fi
 
-  printf "Checking AngularJS... "
-  if ! npm list angular >/dev/null ; then npm install angular@1.3.14; else echo "done."; fi
+  echo "Installing AngularJS... "
+  if ! npm list angular >/dev/null ; then npm install angular@1.3.14; else echo "Already installed."; fi
 }
 
 verifyMySQL() {
@@ -301,7 +301,7 @@ createMySQLDatabase() {
   echo "Please enter your MySQL root password to install the sample app database."
   mysql -u root -p < "$SCRIPT_DIR/src/mysql.sql"
   if [ $? -ne 0 ]; then
-    verifyUserAgreement "The mysql script install/check failed, do you wish to try again?" true
+    verifyUserAgreement "The mysql script install/check failed. Do you wish to try again?" true
     createMySQLDatabase
   fi
   echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
@@ -311,12 +311,12 @@ createMySQLDatabase() {
 
 startMachineAgent() {
   writeControllerInfo "$RUN_PATH/MachineAgent/conf/controller-info.xml"
-  startProcess "MachineAgent" "Machine Agent" "java -jar $RUN_PATH/MachineAgent/machineagent.jar" "NOWAIT"
+  startProcess "machine-agent" "AppDynamics Machine Agent" "java -jar $RUN_PATH/MachineAgent/machineagent.jar" "NOWAIT"
 }
 
 startDatabaseAgent() {
   writeControllerInfo "$RUN_PATH/DatabaseAgent/conf/controller-info.xml"
-  startProcess "DatabaseAgent" "Database Agent" "java -jar $RUN_PATH/DatabaseAgent/db-agent.jar" "NOWAIT"
+  startProcess "database-agent" "AppDynamics Database Agent" "java -jar $RUN_PATH/DatabaseAgent/db-agent.jar" "NOWAIT"
 }
 
 startNode() {
@@ -338,7 +338,7 @@ require(\"appdynamics\").profile({
   ln -sf "$RUN_PATH/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"
   ln -sf "$RUN_PATH/node_modules/jquery/dist/" "$SCRIPT_DIR/src/public/jquery"
   if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
-  startProcess "Node" "Node (Port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
+  startProcess "node" "Node server (port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
 }
 
 onExitCleanup() {

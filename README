@@ -3,13 +3,13 @@ AppDynamics Demo Application Environment Setup
 This script will install a sample application to show AppDynamics in action.
 The following will be installed and configured:
   - Apache Tomcat Standalone Instance
-  - AppDynamics Java App Server Agent
+  - AppDynamics App Agent for Java
   - AppDynamics Database Agent
   - AppDynamics Machine Agent
 
 The following will be installed and configured on Linux and Mac only:
   - AppDynamics Node Agent
-  - NodeJS (with Express, Request, jQuery, Bootstrap, and Angular)
+  - Node.js (with nvm, npm, Express, Request, jQuery, Bootstrap, and Angular)
 
 The INSTALL scripts have been pre-configured for your AppDynamics controller.
 Simply run the INSTALL script for your platform as the root user.
