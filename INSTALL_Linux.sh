@@ -144,7 +144,7 @@ startProcess() {
   ${PROCESS_COMMAND} >> "$RUN_LOG/$LOG_KEY" 2>&1  &
   if [ "$NOWAIT" = false ]; then
     LOOPS=0
-    while [ "$LOOPS" -ne "$TIMEOUT" -a $(ps -p"$APPD_ACTIVE_STARTUP_CHECK" -o pid=) ]; do
+    while [ "$LOOPS" -ne "$TIMEOUT" -a -n "$(ps -p"$APPD_ACTIVE_STARTUP_CHECK" -o pid=)" ]; do
       printf "%s" "."
       LOOPS=$((LOOPS+1))
       sleep 1
