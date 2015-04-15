@@ -139,7 +139,7 @@ GOTO :EOF
 GOTO :EOF
 
 :downloadCurl
-  echo Verifying/Installing curl...
+  echo Checking/Installing curl...
   if exist "%RUN_PATH%\utils\curl.exe" GOTO :EOF
   CALL :verifyUserAgreement "curl needs to be downloaded, do you wish to continue?"
   SET VB_DOWNLOAD_URL="http://www.paehl.com/open_source/?download=curl_741_0_ssl.zip"
@@ -207,7 +207,7 @@ GOTO :EOF
 GOTO :EOF
 
 :doNodeDependencyInstall
-  echo Verifiying/Installing %1
+  echo Checking/Installing %1
   %npm% install %1 -g
 GOTO :EOF
 
@@ -223,7 +223,7 @@ GOTO :EOF
   %NVM_DIR%\nvm.exe install %NODE_VERSION%
   %NVM_DIR%\nvm.exe use %NODE_VERSION%
 
-  echo Verifying/Installing Node Express...
+  echo Checking/Installing Node Express...
   CALL :doNodeDependencyInstall express@4.12.3
   CALL :doNodeDependencyInstall request@2.55.0
   CALL :doNodeDependencyInstall jquery@2.1.3
@@ -235,7 +235,7 @@ GOTO :EOF
   SET AGENT_DIR=%~1
   SET AGENT_CHECK_FILE=%~2
   SET AGENT_FILENAME=%~3
-  echo Verifying/Installing AppDynamics %AGENT_DIR%...
+  echo Checking/Installing AppDynamics %AGENT_DIR%...
   if exist "%RUN_PATH%\%AGENT_DIR%\%AGENT_CHECK_FILE%" echo INSTALLED & GOTO :EOF
   mkdir %RUN_PATH%\%AGENT_DIR% 2>NUL
   echo Unpacking %AGENT_DIR% (this may take a few minutes)...
