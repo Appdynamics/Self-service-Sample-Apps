@@ -8,7 +8,7 @@ CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
 NODE_AGENT_VERSION="config-nodejs-agent-version"
 
-# Mac Config
+# Mac-specific Config
 
 APPLICATION_NAME="AppDynamics Sample App (Mac)"
 export JAVA_HOME=$(/usr/libexec/java_home)
@@ -17,7 +17,8 @@ pushd `dirname $0` > /dev/null
 SCRIPT_DIR=`pwd -P`
 popd > /dev/null
 
-# Linux/Mac Shared
+
+####  ALL FOLLOWING CODE SHARED BETWEEN Linux/Mac  ####
 
 JAVA_PORT=8887
 NODE_PORT=8888
@@ -27,6 +28,11 @@ NOPROMPT=false
 PROMPT_EACH_REQUEST=false
 TIMEOUT=150
 APP_STARTED=false
+
+# Remove fourth number from Node agent version.
+if [ "${NODE_AGENT_VERSION%?.*.*.*}" != $NODE_AGENT_VERSION ]; then
+  NODE_AGENT_VERSION="${NODE_AGENT_VERSION%.*}"
+fi
 
 RUN_PATH="/var/tmp/AppDynamicsSampleApp"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
@@ -234,7 +240,7 @@ installTomcat() {
 
 startTomcat() {
   writeControllerInfo "$RUN_PATH/AppServerAgent/conf/controller-info.xml" "JavaServer" "JavaServer01"
-  for dir in "$RUN_PATH/AppServerAgent/ver"*; do
+  for dir in "$RUN_PATH/AppServerAgent/ver"* ; do
     writeControllerInfo "$dir/conf/controller-info.xml" "JavaServer" "JavaServer01"
   done
   export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
