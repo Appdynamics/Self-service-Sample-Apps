@@ -43,7 +43,7 @@ SET node="%NODE_DIR%\node.exe"
 SET npm=%node% "%NODE_PATH%\npm\bin\npm-cli.js"
 
 net session >nul 2>&1
-if not %errorLevel% == 0 echo Please re-run this script with administrative permissions! & GOTO :Exit
+if not %errorLevel% == 0 echo Please run this script with administrative permissions. & GOTO :Exit
 
 if (%1)==() GOTO :startup
 :GETOPTS
@@ -103,8 +103,8 @@ GOTO :EOF
   SET response=
   :verifyUserAgreementLoop
   set /p response=Please input "Y" to accept, or "n" to decline and quit:
-  if [%response%] == [n] CALL :Exit
-  if not [%response%] == [Y] GOTO :verifyUserAgreementLoop
+  if /I [%response%] == [n] CALL :Exit
+  if /I not [%response%] == [y] GOTO :verifyUserAgreementLoop
 GOTO :EOF
 
 :writeControllerInfo
@@ -139,7 +139,7 @@ GOTO :EOF
 GOTO :EOF
 
 :downloadCurl
-  echo Checking/Installing curl...
+  echo Checking curl...
   if exist "%RUN_PATH%\utils\curl.exe" GOTO :EOF
   CALL :verifyUserAgreement "curl needs to be downloaded, do you wish to continue?"
   SET VB_DOWNLOAD_URL="http://www.paehl.com/open_source/?download=curl_741_0_ssl.zip"
@@ -207,7 +207,7 @@ GOTO :EOF
 GOTO :EOF
 
 :doNodeDependencyInstall
-  echo Checking/Installing %1
+  echo Checking %1
   %npm% install %1 -g
 GOTO :EOF
 
@@ -223,7 +223,7 @@ GOTO :EOF
   %NVM_DIR%\nvm.exe install %NODE_VERSION%
   %NVM_DIR%\nvm.exe use %NODE_VERSION%
 
-  echo Checking/Installing Node Express...
+  echo Checking Node Express...
   CALL :doNodeDependencyInstall express@4.12.3
   CALL :doNodeDependencyInstall request@2.55.0
   CALL :doNodeDependencyInstall jquery@2.1.3
@@ -235,7 +235,7 @@ GOTO :EOF
   SET AGENT_DIR=%~1
   SET AGENT_CHECK_FILE=%~2
   SET AGENT_FILENAME=%~3
-  echo Checking/Installing AppDynamics %AGENT_DIR%...
+  echo Checking AppDynamics %AGENT_DIR%...
   if exist "%RUN_PATH%\%AGENT_DIR%\%AGENT_CHECK_FILE%" echo INSTALLED & GOTO :EOF
   mkdir %RUN_PATH%\%AGENT_DIR% 2>NUL
   echo Unpacking %AGENT_DIR% (this may take a few minutes)...

@@ -357,7 +357,7 @@ startDatabaseAgent
 startTomcat
 startNode
 
-echo "Sample App Environment Setup Complete!"
+echo "The AppDynamics Sample App Environment has been started."
 echo "Visit http://localhost:$NODE_PORT to view the sample app."
 
 read -p "Press [Enter] key to quit..." QUIT_VAR
