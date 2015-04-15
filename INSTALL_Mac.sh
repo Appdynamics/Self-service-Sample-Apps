@@ -101,7 +101,7 @@ verifyUserAgreement() {
   fi
   local RESPONSE=
   while true; do
-    read -p "$1 (y/n)" RESPONSE
+    read -p "$1 (y/n) " RESPONSE
     case $RESPONSE in
       [Yy]* ) break;;
       [Nn]* ) exit;;
@@ -365,7 +365,9 @@ startDatabaseAgent
 startTomcat
 startNode
 
-echo "The AppDynamics Sample App Environment has been started."
-echo "Visit http://localhost:$NODE_PORT to view the sample app."
-
-read -p "Press [Enter] key to quit..." QUIT_VAR
+echo ""
+echo "The AppDynamics sample app environment has been started."
+echo ""
+echo "To view the sample app and generate load, go to: http://localhost:$NODE_PORT"
+echo ""
+read -p "Press [Enter] key to quit the sample app server..." QUIT_VAR

@@ -302,9 +302,12 @@ GOTO :EOF
   CALL :startTomcat
   CALL :startNode
 
+  echo.
   echo The AppDynamics Sample App Environment has been started.
-  echo Please wait a few moments for the environment to initialize then:
-  echo Visit http://localhost:%HTTP_PORT%
+  echo Please wait a moment for the environment to initialize.
+  echo.
+  echo Then go here to generate load:  http://localhost:%HTTP_PORT%
+  echo.
   echo Press any key to quit...
   Pause >NUL
   CALL :Exit
