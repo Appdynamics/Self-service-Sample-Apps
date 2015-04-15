@@ -261,9 +261,6 @@ installNode() {
   fi
   nvm install 0.10.33
 
-  echo "Installing AppDynamics Node.js Agent... "
-  if ! npm list appdynamics >/dev/null ; then npm install "appdynamics@$NODE_AGENT_VERSION"; else echo "Already installed."; fi
-
   echo "Installing Node Express... "
   if ! npm list express >/dev/null ; then npm install express@4.12.3; else echo "Already installed."; fi
 
@@ -278,6 +275,9 @@ installNode() {
 
   echo "Installing AngularJS... "
   if ! npm list angular >/dev/null ; then npm install angular@1.3.14; else echo "Already installed."; fi
+
+  echo "Installing AppDynamics Node.js Agent... "
+  if ! npm list appdynamics >/dev/null ; then npm install "appdynamics@$NODE_AGENT_VERSION"; else echo "Already installed."; fi
 }
 
 verifyMySQL() {
