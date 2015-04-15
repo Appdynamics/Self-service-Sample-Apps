@@ -23,3 +23,8 @@
     font-size: 10px;
     font-style: italic;
 }
+
+.glyphicon {
+    padding-left: 0px;
+    padding-right: 3px;
+}
