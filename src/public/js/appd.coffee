@@ -75,7 +75,7 @@ app.controller 'AdminController', [
           setupProductUpdate data[product]
 
     $scope.looping = false
-    $scope.recursive = 5
+    $scope.recursive = 25
     activeLoop = 0
     $scope.getActiveLoop = ->
       if Number(activeLoop) or activeLoop == 0

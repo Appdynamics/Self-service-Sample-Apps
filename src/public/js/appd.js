@@ -112,7 +112,7 @@
         return results;
       });
       $scope.looping = false;
-      $scope.recursive = 5;
+      $scope.recursive = 25;
       activeLoop = 0;
       $scope.getActiveLoop = function() {
         if (Number(activeLoop) || activeLoop === 0) {

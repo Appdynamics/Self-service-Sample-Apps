@@ -57,6 +57,15 @@
 
     <!-- Page Content -->
     <div ng-controller="AdminController" class="container">
+
+        <h3>Generate App Load</h3>
+        <div class="row">
+            <div class="col-sm-12">
+                Number of Requests: <input type="text" ng-model="recursive" /> <button type="button" class="btn btn-danger btn-sm" ng-click="loopingGet()" ng-disabled="looping">Run</button> (<strong>{{getActiveLoop()}}</strong>)<br />
+                <span class="note">Please wait up to five minutes to see load in your controller.</span>
+            </div>
+        </div>
+
         <h3>PUT/POST/DEL Operations</h3>
 
         <table class="table table-condensed table-striped">
@@ -117,13 +126,6 @@
             </tr>
             </tfoot>
         </table>
-
-        <h3>Generate App Load</h3>
-        <div class="row">
-            <div class="col-sm-12">
-                Number of Requests: <input type="text" ng-model="recursive" /> <button type="button" class="btn btn-danger btn-sm" ng-click="loopingGet()" ng-disabled="looping">Run</button> (<strong>{{getActiveLoop()}}</strong>)
-            </div>
-        </div>
 
         <h3>Exception Operations</h3>
 
