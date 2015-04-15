@@ -40,7 +40,7 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="http://www.appdynamics.com">AppDynamics</a>
+                <span class="navbar-brand">AppDynamics Sample App</span>
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -56,22 +56,28 @@
     </nav>
 
     <!-- Page Content -->
-    <div ng-controller="AdminController" class="container">
+    <div ng-controller="AdminController" class="container" ng-show="ready">
 
-        <h3>Generate App Load</h3>
+        <p>This simple single-page web application sends requests to a Node HTTP server, which connects to an Apache Tomcat backend server, which in turn connects to a MySQL database.</p>
+
+        <p>As you follow the steps below, you can observe app activity within your AppDynamics Controller under <strong><nobr>Applications &gt; AppDynamics Sample App.</nobr></strong></p>
+
+        <h3>Step 1: Generate Initial App Load</h3>
         <div class="row">
             <div class="col-sm-12">
-                Number of Requests: <input type="text" ng-model="recursive" /> <button type="button" class="btn btn-danger btn-sm" ng-click="loopingGet()" ng-disabled="looping">Run</button> (<strong>{{getActiveLoop()}}</strong>)<br />
-                <span class="note">Please wait up to five minutes to see load in your controller.</span>
+                Number of Requests: <input type="text" ng-model="recursive" /> <button type="button" class="btn btn-danger btn-sm" ng-click="loopingGet()" ng-disabled="looping">Run</button> &nbsp; <strong>{{getActiveLoop()}}</strong>
+                <div class="note"><strong>Note:</strong> Please wait up to five minutes to see load in your AppDynamics Controller. To simulate slowdowns, random delays will be added to some of the requests.</div>
             </div>
         </div>
 
-        <h3>PUT/POST/DEL Operations</h3>
+        <h3>Step 2: Simulate User Requests</h3>
 
-        <table class="table table-condensed table-striped">
+        <p>Click the buttons below to simulate e-commerce inventory management. Observe app activity in the AppDynamics Controller.</p>
+
+        <table class="table table-condensed table-striped products">
             <thead>
             <tr>
-                <th>
+                <th class="product-id">
                     ID
                 </th>
                 <th>
@@ -83,14 +89,11 @@
                 <th>
                     &nbsp;
                 </th>
-                <th>
-                    &nbsp;
-                </th>
             </tr>
             </thead>
             <tbody>
             <tr data-ng-repeat="product in products">
-                <td>
+                <td class="product-id">
                     {{product.id}}
                 </td>
                 <td>
@@ -101,23 +104,21 @@
                 </td>
                 <td>
                     <button type="button" ng-click="product.save()" ng-disabled="product.loading" class="btn btn-sm btn-primary" alt="Save">
-                        <span class="glyphicon glyphicon-cloud-upload"></span> Save Inventory (PUT)
+                        <span class="glyphicon glyphicon-cloud-upload"></span> Save Product
                     </button>
-                </td>
-                <td>
                     <button type="button" ng-click="product.save(true)" ng-disabled="product.loading" class="btn btn-sm btn-success" alt="Save">
-                        <span class="glyphicon glyphicon-shopping-cart"></span> Buy Product (PUT)
+                        <span class="glyphicon glyphicon-shopping-cart"></span> Buy Product
                     </button>
                     <button type="button" ng-click="product.delete()" ng-disabled="product.loading" class="btn btn-sm btn-danger" alt="Delete">
-                        <span class="glyphicon glyphicon-trash"></span> Delete Product (DEL)
+                        <span class="glyphicon glyphicon-trash"></span> Delete Product
                     </button>
                 </td>
             </tr>
             </tbody>
             <tfoot>
             <tr class="alert-info">
-                <td>
-                    New
+                <td class="product-id">
+                    Add New
                 </td>
                 <td>
                     <input type="text" ng-model="newName" />
@@ -126,34 +127,27 @@
                     <input type="number" ng-model="newStock" />
                 </td>
                 <td>
-                    <button type="button" class="btn btn-sm btn-primary" ng-click="addNew()" ng-disable="loadingNew"><span class="glyphicon glyphicon-cloud-upload"></span> Save New Product (POST)</button>
+                    <button type="button" class="btn btn-sm btn-primary" ng-click="addNew()" ng-disable="loadingNew"><span class="glyphicon glyphicon-cloud-upload"></span> Save New Product</button>
                 </td>
-                <td></td>
             </tr>
             </tfoot>
         </table>
 
-        <h3>Raise Exceptions</h3>
+        <h3>Step 3: Raise Exceptions</h3>
+
+        <p>Click these buttons to raise exceptions on the Node and Java servers. Observe results in the AppDynamics Controller.</p>
 
         <div class="row">
             <div class="col-sm-12">
-                <button type="button" class="btn btn-danger btn-sm" ng-click="raiseException()" ng-disabled="raising">Raise Exception - Node</button>
-                (<span>Number of Exceptions Raised This Session: <strong>{{getExceptions()}}</strong></span>)
+                <button type="button" class="btn btn-danger btn-sm" ng-click="raiseException()" ng-disabled="raising">Raise Node Exception<span ng-show="getExceptions()"> ({{getExceptions()}})</span></button>
+
+                <button type="button" class="btn btn-danger btn-sm" ng-click="raiseJavaException()" ng-disabled="raisingJava">Raise Java Exception<span ng-show="getJavaExceptions()"> ({{getJavaExceptions()}})</span></button>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-sm-12">
-                <button type="button" class="btn btn-danger btn-sm" ng-click="raiseJavaException()" ng-disabled="raisingJava">Raise Exception - Java</button>
-                (<span>Number of Exceptions Raised This Session: <strong>{{getJavaExceptions()}}</strong></span>)
-            </div>
-        </div>
+        <h3>Step 4: Try AppDynamics With Your Own App</h3>
 
-        <hr />
-
-        <span class="note">To simulate slowdowns, random delays will be added to some of the requests.</span>
-
-        <hr />
+        <p>Now that you've had a taste of what AppDynamics can do, it's time to instrument your own app with AppDynamics. To proceed, navigate your AppDynamics Controller to <strong><nobr/>Home &gt; Getting Started</nobr></strong>.</p>
 
         <!-- Footer -->
         <footer>

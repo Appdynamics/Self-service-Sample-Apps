@@ -31,6 +31,7 @@ app.controller 'AdminController', [
   '$scope', '$http', '$rootScope', '$timeout'
   ($scope, $http, $rootScope, $timeout) ->
     $scope.products = []
+    $scope.ready = false
 
     setupProductUpdate = (product) ->
       product.loading = false
@@ -49,7 +50,7 @@ app.controller 'AdminController', [
           product.stock = parseInt returnProduct[0].stock, 10
           product.lodaing = false
         .error ->
-          alert 'Unable to update the product!'
+          alert 'Unable to update the product.'
           product.loading = false
       product.delete = ->
         $http.get '/delete',
@@ -64,7 +65,7 @@ app.controller 'AdminController', [
               $scope.products.splice lookup, 1
               break
         .error ->
-          alert 'Unable to delete the product!'
+          alert 'Unable to delete the product.'
           product.loading = false
       $scope.products.push product
 
@@ -73,6 +74,8 @@ app.controller 'AdminController', [
         for product of data
           if not data.hasOwnProperty product then continue
           setupProductUpdate data[product]
+        $scope.ready = true
+        null
 
     $scope.looping = false
     $scope.recursive = 25
@@ -80,9 +83,9 @@ app.controller 'AdminController', [
     $scope.getActiveLoop = ->
       if Number(activeLoop) or activeLoop == 0
         if activeLoop > 0
-          return 'Loop: ' + activeLoop
+          return 'Sending Request #' + activeLoop + '...'
         else
-          return 'Waiting...'
+          return ''
       activeLoop
     recurses = 0
 
@@ -124,7 +127,7 @@ app.controller 'AdminController', [
         $scope.newStock = 0
         setupProductUpdate data[0]
       .error ->
-        alert 'Unable to add new product!'
+        alert 'Unable to add new product.'
         $scope.loadingNew = false
 
     if not $rootScope.exceptions?
@@ -143,7 +146,7 @@ app.controller 'AdminController', [
         $rootScope.exceptions++
         $scope.raising = false
       .error ->
-        alert 'Unable to raise exception!'
+        alert 'Unable to raise exception.'
         $scope.raising = false
     $scope.raisingJava = false
     $scope.getJavaExceptions = ->
@@ -156,7 +159,7 @@ app.controller 'AdminController', [
         $rootScope.exceptionsJava++
         $scope.raisingJava = false
       .error ->
-        alert 'Unable to raise exception!'
+        alert 'Unable to raise exception.'
         $scope.raisingJava = false
 ]
 

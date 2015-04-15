@@ -20,11 +20,24 @@
 }
 
 .note {
-    font-size: 10px;
+    margin: 6px 0;
+    font-size: 12px;
     font-style: italic;
 }
 
 .glyphicon {
     padding-left: 0px;
     padding-right: 3px;
+}
+
+.loading {
+    color: #eee;
+}
+
+table.products td {
+    vertical-align: middle !important;
+}
+
+.product-id {
+    text-align: right;
 }

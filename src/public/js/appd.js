@@ -47,6 +47,7 @@
     '$scope', '$http', '$rootScope', '$timeout', function($scope, $http, $rootScope, $timeout) {
       var activeLoop, performLoopGet, recurses, setupProductUpdate;
       $scope.products = [];
+      $scope.ready = false;
       setupProductUpdate = function(product) {
         product.loading = false;
         product.stock = parseInt(product.stock, 10);
@@ -67,7 +68,7 @@
             product.stock = parseInt(returnProduct[0].stock, 10);
             return product.lodaing = false;
           }).error(function() {
-            alert('Unable to update the product!');
+            alert('Unable to update the product.');
             return product.loading = false;
           });
         };
@@ -94,7 +95,7 @@
             }
             return results;
           }).error(function() {
-            alert('Unable to delete the product!');
+            alert('Unable to delete the product.');
             return product.loading = false;
           });
         };
@@ -102,14 +103,14 @@
       };
       $http.get('/retrieveAll').success(function(data) {
         var product, results;
-        results = [];
         for (product in data) {
           if (!data.hasOwnProperty(product)) {
             continue;
           }
-          results.push(setupProductUpdate(data[product]));
+          setupProductUpdate(data[product]);
         }
-        return results;
+        $scope.ready = true;
+        return null;
       });
       $scope.looping = false;
       $scope.recursive = 25;
@@ -117,9 +118,9 @@
       $scope.getActiveLoop = function() {
         if (Number(activeLoop) || activeLoop === 0) {
           if (activeLoop > 0) {
-            return 'Loop: ' + activeLoop;
+            return 'Sending Request #' + activeLoop + '...';
           } else {
-            return 'Waiting...';
+            return '';
           }
         }
         return activeLoop;
@@ -165,7 +166,7 @@
           $scope.newStock = 0;
           return setupProductUpdate(data[0]);
         }).error(function() {
-          alert('Unable to add new product!');
+          alert('Unable to add new product.');
           return $scope.loadingNew = false;
         });
       };
@@ -187,7 +188,7 @@
           $rootScope.exceptions++;
           return $scope.raising = false;
         }).error(function() {
-          alert('Unable to raise exception!');
+          alert('Unable to raise exception.');
           return $scope.raising = false;
         });
       };
@@ -203,7 +204,7 @@
           $rootScope.exceptionsJava++;
           return $scope.raisingJava = false;
         }).error(function() {
-          alert('Unable to raise exception!');
+          alert('Unable to raise exception.');
           return $scope.raisingJava = false;
         });
       };
