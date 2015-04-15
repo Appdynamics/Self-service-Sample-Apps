@@ -16,6 +16,7 @@ fi
 
 # Run maven package to build java server jar
 cd "$SCRIPT_DIR/maven"
+mvn clean
 mvn package
 cd "$SCRIPT_DIR"
 
