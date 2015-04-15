@@ -8,7 +8,17 @@ CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
 NODE_AGENT_VERSION="config-node-agent-version"
 
+# Mac Config
+
 APPLICATION_NAME="AppDynamics Sample App (Mac)"
+export JAVA_HOME=$(/usr/libexec/java_home)
+
+pushd `dirname $0` > /dev/null
+SCRIPT_DIR=`pwd -P`
+popd > /dev/null
+
+# Linux/Mac Shared
+
 JAVA_PORT=8887
 NODE_PORT=8888
 MYSQL_PORT=3306
@@ -17,10 +27,6 @@ NOPROMPT=false
 PROMPT_EACH_REQUEST=false
 TIMEOUT=150
 APP_STARTED=false
-
-pushd `dirname $0` > /dev/null
-SCRIPT_DIR=`pwd -P`
-popd > /dev/null
 
 RUN_PATH="/var/tmp/AppDynamicsSampleApp"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
@@ -146,7 +152,7 @@ startProcess() {
   ${PROCESS_COMMAND} >> "$RUN_LOG/$LOG_KEY" 2>&1  &
   if [ "$NOWAIT" = false ]; then
     LOOPS=0
-    while [ "$LOOPS" -ne "$TIMEOUT" -a $(ps -p"$APPD_ACTIVE_STARTUP_CHECK" -o pid=) ]; do
+    while [ "$LOOPS" -ne "$TIMEOUT" -a -n "$(ps -p"$APPD_ACTIVE_STARTUP_CHECK" -o pid=)" ]; do
       printf "%s" "."
       LOOPS=$((LOOPS+1))
       sleep 1

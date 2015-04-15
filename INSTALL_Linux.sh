@@ -8,7 +8,13 @@ CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
 NODE_AGENT_VERSION="config-node-agent-version"
 
+# Linux Config
+
 APPLICATION_NAME="AppDynamics Sample App (Linux)"
+SCRIPT_DIR="$(readlink -f "$0" | xargs dirname)"
+
+# Linux/Mac Shared
+
 JAVA_PORT=8887
 NODE_PORT=8888
 MYSQL_PORT=3306
@@ -17,8 +23,6 @@ NOPROMPT=false
 PROMPT_EACH_REQUEST=false
 TIMEOUT=150
 APP_STARTED=false
-
-SCRIPT_DIR="$(readlink -f "$0" | xargs dirname)"
 
 RUN_PATH="/var/tmp/AppDynamicsSampleApp"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
