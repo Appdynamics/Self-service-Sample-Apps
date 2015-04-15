@@ -109,8 +109,8 @@ GOTO :EOF
   SET response=
   :verifyUserAgreementLoop
   set /p response=Please input "Y" to accept, or "n" to decline and quit:
-  if %response% == n CALL :Exit
-  if not %response% == Y GOTO :verifyUserAgreementLoop
+  if [%response%] == [n] CALL :Exit
+  if not [%response%] == [Y] GOTO :verifyUserAgreementLoop
 GOTO :EOF
 
 :writeControllerInfo
@@ -263,12 +263,14 @@ GOTO :EOF
 :startDatabaseAgent
   echo Starting Database Agent...
   CALL :writeControllerInfo "%RUN_PATH%\DatabaseAgent\conf\controller-info.xml"
-  start "_AppDynamicsSampleApp_ Database Agent" /MIN "%JAVA_HOME%\bin\java.exe" -Dappdynamics.controller.hostName=%CONTROLLER_ADDRESS% -Dappdynamics.controller.port=%CONTROLLER_PORT% -Dappdynamics.controller.ssl.enabled=%CONTROLLER_SSL% -Dappdynamics.agent.accountName=%ACCOUNT_NAME% -Dappdynamics.agent.accountAccessKey=%ACCOUNT_ACCESS_KEY% -jar %RUN_PATH%\DatabaseAgent\db-agent.jar
+  start "_AppDynamicsSampleApp_ Database Agent" /MIN "%JAVA_HOME%\bin\java.exe" -jar %RUN_PATH%\DatabaseAgent\db-agent.jar
 GOTO :EOF
 
 :startTomcat
   CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\conf\controller-info.xml" "JavaServer" "JavaServer01"
-  CALL :writeControllerInfo "%RUN_PATH%\AppServerAgent\ver%JAVA_AGENT_VERSION%\conf\controller-info.xml" "JavaServer" "JavaServer01"
+  for /D  %%d in ("%RUN_PATH%\AppServerAgent\ver*") do (
+    CALL :writeControllerInfo "%%d\conf\controller-info.xml" "JavaServer" "JavaServer01"
+  )
   SET JAVA_OPTS=-javaagent:%RUN_PATH%\AppServerAgent\javaagent.jar
   echo Starting Tomcat...
   start "_AppDynamicsSampleApp_ Tomcat" /MIN "%RUN_PATH%\tomcatrest\bin\SampleAppServer.bat"

@@ -101,7 +101,7 @@ verifyUserAgreement() {
   fi
   local RESPONSE=
   while true; do
-    read -p "$1 " RESPONSE
+    read -p "$1 (y/n)" RESPONSE
     case $RESPONSE in
       [Yy]* ) break;;
       [Nn]* ) exit;;
@@ -113,7 +113,7 @@ verifyUserAgreement() {
 startup() {
   about
   if ! ${PROMPT_EACH_REQUEST} ; then
-    verifyUserAgreement "Continue to install above dependencies? (y/n)"
+    verifyUserAgreement "Continue to install above dependencies?"
     NOPROMPT=true
   fi
   APP_STARTED=true
@@ -234,7 +234,7 @@ installTomcat() {
 
 startTomcat() {
   writeControllerInfo "$RUN_PATH/AppServerAgent/conf/controller-info.xml" "JavaServer" "JavaServer01"
-  for dir in $RUN_PATH/AppServerAgent/ver*; do
+  for dir in "$RUN_PATH/AppServerAgent/ver"*; do
     writeControllerInfo "$dir/conf/controller-info.xml" "JavaServer" "JavaServer01"
   done
   export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
@@ -314,7 +314,7 @@ startMachineAgent() {
 
 startDatabaseAgent() {
   writeControllerInfo "$RUN_PATH/DatabaseAgent/conf/controller-info.xml"
-  startProcess "DatabaseAgent" "Database Agent" "java -Dappdynamics.controller.hostName=$CONTROLLER_ADDRESS -Dappdynamics.controller.port=$CONTROLLER_PORT -Dappdynamics.controller.ssl.enabled=$CONTROLLER_SSL -Dappdynamics.agent.accountName=$ACCOUNT_NAME -Dappdynamics.agent.accountAccessKey=$ACCOUNT_ACCESS_KEY -jar $RUN_PATH/DatabaseAgent/db-agent.jar" "NOWAIT"
+  startProcess "DatabaseAgent" "Database Agent" "java -jar $RUN_PATH/DatabaseAgent/db-agent.jar" "NOWAIT"
 }
 
 startNode() {

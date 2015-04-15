@@ -6,3 +6,4 @@ maven/target*
 sampleapp/repo/javax*
 sampleapp/repo/mysql*
 sampleapp/repo/org*
+agents/*
