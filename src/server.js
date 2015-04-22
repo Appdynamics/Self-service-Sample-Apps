@@ -23,7 +23,7 @@ function setupStoreFrontCall(method, nodePath, apiRequest) {
     if (method == 'POST') {
       data['form'] = query;
     } else if (method == 'GET') {
-      data['query'] = query;
+      data['qs'] = query;
     } else {
       if (query.hasOwnProperty("id")) {
         data.url += "/" + query.id;

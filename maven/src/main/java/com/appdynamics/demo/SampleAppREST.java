@@ -115,9 +115,8 @@ public class SampleAppREST {
 
   @GET
   @Path("/slowrequest")
-  public void slowRequest() throws Exception {
-    int loops = (int) Math.ceil(Math.random()*20)+10;
-    for(int x = 0; x < loops; ++x) {
+  public void slowRequest(@QueryParam("delay") int delay) throws Exception {
+    for(int x = 0; x < delay; ++x) {
       Thread.sleep(1000);
     }
   }

@@ -147,9 +147,14 @@
         return performLoopGet();
       };
       $scope.slowRequest = false;
+      $scope.delay = 10;
       $scope.slowRequestGet = function() {
         $scope.slowRequest = true;
-        return $http.get('/slowrequest').success(function() {
+        return $http.get('/slowrequest', {
+          params: {
+            delay: $scope.delay
+          }
+        }).success(function() {
           return $scope.slowRequest = false;
         }).error(function() {
           return $scope.slowRequest = false;

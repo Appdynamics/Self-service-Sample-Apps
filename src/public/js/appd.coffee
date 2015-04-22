@@ -109,9 +109,12 @@ app.controller 'AdminController', [
       performLoopGet()
 
     $scope.slowRequest = false
+    $scope.delay = 10
     $scope.slowRequestGet = ->
       $scope.slowRequest = true
-      $http.get '/slowrequest'
+      $http.get '/slowrequest',
+        params:
+          delay: $scope.delay
       .success ->
         $scope.slowRequest = false
       .error ->
