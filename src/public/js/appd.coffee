@@ -108,6 +108,15 @@ app.controller 'AdminController', [
       recurses = $scope.recursive
       performLoopGet()
 
+    $scope.slowRequest = false
+    $scope.slowRequestGet = ->
+      $scope.slowRequest = true
+      $http.get '/slowrequest'
+      .success ->
+        $scope.slowRequest = false
+      .error ->
+        $scope.slowRequest = false
+
     $scope.newName = ""
     $scope.newStock = 0
 
@@ -134,6 +143,8 @@ app.controller 'AdminController', [
       $rootScope.exceptions = 0
     if not $rootScope.exceptionsJava?
       $rootScope.exceptionsJava = 0
+    if not $rootScope.exceptionsSql?
+      $rootScope.exceptionsSql = 0
 
     $scope.raising = false
     $scope.getExceptions = ->
@@ -161,6 +172,19 @@ app.controller 'AdminController', [
       .error ->
         alert 'Unable to raise exception.'
         $scope.raisingJava = false
+    $scope.raisingSql = false
+    $scope.getSqlExceptions = ->
+      $rootScope.exceptionsSql
+    $scope.raiseSqlException = ->
+      $scope.raisingSql = true
+      $http.get '/exceptionSql',
+        method: 'GET'
+      .success (data) ->
+        $rootScope.exceptionsSql++
+        $scope.raisingSql = false
+      .error ->
+        alert 'Unable to raise exception.'
+        $scope.raisingSql = false
 ]
 
 app.directive 'adLoader', [

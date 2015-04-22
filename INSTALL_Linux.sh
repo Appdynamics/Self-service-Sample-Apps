@@ -6,7 +6,8 @@ ACCOUNT_ACCESS_KEY="config-account-access-key"
 CONTROLLER_ADDRESS="config-controller-host"
 CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
-NODE_AGENT_VERSION="config-nodejs-agent-version"
+#NODE_AGENT_VERSION="config-nodejs-agent-version"
+NODE_AGENT_VERSION="4.0.4"
 
 # Linux-specific config
 APPLICATION_NAME="AppDynamics Sample App (Linux)"
@@ -30,12 +31,13 @@ if [ "${NODE_AGENT_VERSION%?.*.*.*}" != $NODE_AGENT_VERSION ]; then
   NODE_AGENT_VERSION="${NODE_AGENT_VERSION%.*}"
 fi
 
-RUN_PATH="/var/tmp/AppDynamicsSampleApp"
+RUN_PATH="$SCRIPT_DIR"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
 NOW=$(date +"%s")
 RUN_LOG="$RUN_PATH/log/$NOW"
 mkdir -p "$RUN_LOG"
 export NVM_DIR="$RUN_PATH/.nvm"
+mkdir -p "$NVM_DIR"
 
 export APPD_MYSQL_PORT_FILE="$RUN_PATH/mysql.port"
 export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
@@ -64,12 +66,21 @@ usage() {
 
 removeEnvironment() {
   echo "Removing Sample Application environment..."
-  rm -rf "$RUN_PATH"
+  rm -rf "$NVM_DIR"
+  rm -rf "$RUN_PATH/src/public/angular"
+  rm -rf "$RUN_PATH/src/public/bootstrap"
+  rm -rf "$RUN_PATH/src/public/jquery"
+  rm -rf "$RUN_PATH/node"
+  rm -rf "$RUN_PATH/AppServerAgent"
+  rm -rf "$RUN_PATH/DatabaseAgent"
+  rm -rf "$RUN_PATH/MachineAgent"
+  rm -rf "$RUN_PATH/tomcatrest"
+  rm -rf "$RUN_PATH/log"
+  rm -rf "$RUN_PATH/node_modules"
   echo "Done"
   exit 0
 }
 
-if ! [ $(id -u) = 0 ]; then echo "Please run this script as root: sudo sh $SCRIPT_NAME"; exit 0; fi
 while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
   case "$OPT" in
     c) CONTROLLER_ADDRESS=$OPTARG;;
@@ -104,7 +115,7 @@ verifyUserAgreement() {
   local RESPONSE=
   while true; do
     read -p "$1 (y/n) " RESPONSE
-    case $RESPONSE in
+    case "$RESPONSE" in
       [Yy]* ) break;;
       [Nn]* ) echo "Exiting."; exit;;
     esac
@@ -240,11 +251,20 @@ startTomcat() {
     writeControllerInfo "$dir/conf/controller-info.xml" "JavaServer" "JavaServer01"
   done
   export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
-  startProcess "tomcat" "Tomcat server (port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR:"
+  startProcess "Tomcat" "Tomcat Server (Port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR:"
 }
 
 setupNodeNvm() {
   [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+}
+
+installNodeDependency() {
+  local DEPENDENCY_NAME="$1"; local DEPENDENCY_INSTALL="$2"; local DEPENDENCY_VERSION="$3"
+
+  echo "Installing (Node) $DEPENDENCY_NAME..."
+  if ! npm list -g "$DEPENDENCY_INSTALL" >/dev/null ; then
+    npm install -g "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
+  else echo "Already installed."; fi
 }
 
 installNode() {
@@ -253,35 +273,25 @@ installNode() {
   if ! command -v nvm 2>/dev/null >/dev/null ; then
     verifyUserAgreement "Node needs to be downloaded. Do you wish to continue?"
     curl https://raw.githubusercontent.com/creationix/nvm/v0.23.3/install.sh | NVM_DIR="$NVM_DIR" sh;
+
     echo "Initializing nvm automatically..."
     setupNodeNvm
   fi
-  nvm install 0.10.33
+  nvm install "$NODE_VERSION"
 
-  echo "Installing Node Express... "
-  if ! npm list express >/dev/null ; then npm install express@4.12.3; else echo "Already installed."; fi
-
-  echo "Installing Node Request... "
-  if ! npm list request >/dev/null ; then npm install request@2.55.0; else echo "Already installed."; fi
-
-  echo "Installing jQuery... "
-  if ! npm list jquery >/dev/null ; then npm install jquery@2.1.3; else echo "Already installed."; fi
-
-  echo "Installing Bootstrap... "
-  if ! npm list bootstrap >/dev/null ; then npm install bootstrap@3.3.4; else echo "Already installed."; fi
-
-  echo "Installing AngularJS... "
-  if ! npm list angular >/dev/null ; then npm install angular@1.3.14; else echo "Already installed."; fi
-
-  echo "Installing AppDynamics Node.js Agent... "
-  if ! npm list appdynamics >/dev/null ; then npm install "appdynamics@$NODE_AGENT_VERSION"; else echo "Already installed."; fi
+  installNodeDependency "Express" "express" "4.12.3"
+  installNodeDependency "Request" "request" "2.55.0"
+  installNodeDependency "jQuery" "jquery" "2.1.3"
+  installNodeDependency "Bootstrap" "bootstrap" "3.3.4"
+  installNodeDependency "AngularJS" "angular" "1.3.14"
+  installNodeDependency "AppDynamics Agent" "appdynamics" "$NODE_AGENT_VERSION"
 }
 
 verifyMySQL() {
   printf "Checking MySQL..."
   if ! which mysql >/dev/null ; then
-    echo "Cannot find mysql. Please make sure it is installed and in your PATH. Exiting.";
-    exit 1;
+    echo "Cannot find mysql. Please make sure it is installed and in your PATH. Exiting."
+    exit 1
   fi
   echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
   echo " done."
@@ -289,8 +299,8 @@ verifyMySQL() {
 
 verifyJava() {
   printf "Checking Java..."
-  if ! which java >/dev/null; then
-    echo "Cannot find java. Please make sure it is installed and in your PATH. Exiting."
+  if [ ! -f "$JAVA_HOME/bin/java" ]; then
+    echo "Cannot find java. Please make sure JAVA_HOME is configured properly. Exiting."
     exit 1;
   fi
   echo " done."
@@ -334,9 +344,9 @@ require(\"appdynamics\").profile({
 });
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$CONTROLLER_SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
   cat "$SCRIPT_DIR/src/server.js" >> "$RUN_PATH/node/server.js"
-  ln -sf "$RUN_PATH/node_modules/angular/" "$SCRIPT_DIR/src/public/angular"
-  ln -sf "$RUN_PATH/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"
-  ln -sf "$RUN_PATH/node_modules/jquery/dist/" "$SCRIPT_DIR/src/public/jquery"
+  ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/angular/" "$SCRIPT_DIR/src/public/angular"
+  ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"
+  ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/jquery/dist/" "$SCRIPT_DIR/src/public/jquery"
   if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
   startProcess "node" "Node server (port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
 }
@@ -349,6 +359,7 @@ onExitCleanup() {
     rm -f "$RUN_PATH/cookies"
     rm -f "$RUN_PATH/status-"*
     rm -f "$RUN_PATH/tomcat"
+    rm -f "$RUN_PATH/mysql.port"
   fi
   kill 0
 }
@@ -370,6 +381,6 @@ startNode
 echo ""
 echo "The AppDynamics sample app environment has been started."
 echo ""
-echo "To view the sample app and generate load, go to: http://localhost:$NODE_PORT"
+echo "To view the sample app and generate your own load, go to: http://localhost:$NODE_PORT"
 echo ""
 read -p "Press [Enter] key to quit the sample app server..." QUIT_VAR

@@ -66,7 +66,7 @@
         <div class="row">
             <div class="col-sm-12">
                 Number of Requests: <input type="text" ng-model="recursive" /> <button type="button" class="btn btn-danger btn-sm" ng-click="loopingGet()" ng-disabled="looping">Run</button> &nbsp; <strong>{{getActiveLoop()}}</strong>
-                <div class="note"><strong>Note:</strong> Please wait up to five minutes to see load in your AppDynamics Controller. To simulate slowdowns, random delays will be added to some of the requests.</div>
+                <div class="note"><strong>Note:</strong> Please wait up to five minutes to see load in your AppDynamics Controller.</div>
             </div>
         </div>
 
@@ -142,10 +142,18 @@
                 <button type="button" class="btn btn-danger btn-sm" ng-click="raiseException()" ng-disabled="raising">Raise Node Exception<span ng-show="getExceptions()"> ({{getExceptions()}})</span></button>
 
                 <button type="button" class="btn btn-danger btn-sm" ng-click="raiseJavaException()" ng-disabled="raisingJava">Raise Java Exception<span ng-show="getJavaExceptions()"> ({{getJavaExceptions()}})</span></button>
+
+                <button type="button" class="btn btn-danger btn-sm" ng-click="raiseSqlException()" ng-disabled="raisingSql">Raise Sql Exception<span ng-show="getSqlExceptions()"> ({{getSqlExceptions()}})</span></button>
             </div>
         </div>
 
-        <h3>Step 4: Try AppDynamics With Your Own App</h3>
+        <h3>Step 4: Generate Slow Requests</h3>
+
+        <p>Generate a request that takes at least 10 seconds to finish.</p>
+
+        <button type="button" class="btn btn-danger btn-sm" ng-click="slowRequestGet()" ng-disabled="slowRequest">Run</button>
+
+        <h3>Step 5: Try AppDynamics With Your Own App</h3>
 
         <p>Now that you've had a taste of what AppDynamics can do, it's time to instrument your own app with AppDynamics. To proceed, navigate your AppDynamics Controller to <strong><nobr/>Home &gt; Getting Started</nobr></strong>.</p>
 

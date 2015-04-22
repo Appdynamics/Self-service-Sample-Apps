@@ -25,16 +25,6 @@ public class SampleAppREST {
       bufferedReader.close();
     } catch (Exception exception) {}
 
-    int rand = (int) Math.ceil(Math.random()*100);
-    // Lets inject a longer load for a random amount of time
-    if (rand > 90) {
-      // If
-      int loops = (int) Math.ceil(Math.random()*10);
-      for(int x = 0; x < loops; ++x) {
-        Thread.sleep(1000);
-      }
-    }
-
     Class.forName("com.mysql.jdbc.Driver").newInstance();
     return DriverManager
       .getConnection("jdbc:mysql://localhost:" + port + "/AppDemo",
@@ -114,6 +104,22 @@ public class SampleAppREST {
   @Path("/exception")
   public void throwException() throws Exception {
     throw new Exception("Forced Exception");
+  }
+
+  @GET
+  @Path("/sqlexception")
+  public void throwSqlException() throws Exception {
+    PreparedStatement preparedStatemnt = getStatement("INSERT INTO non_existant_table (wrong_column) VALUES (1)");
+    preparedStatemnt.executeUpdate();
+  }
+
+  @GET
+  @Path("/slowrequest")
+  public void slowRequest() throws Exception {
+    int loops = (int) Math.ceil(Math.random()*20)+10;
+    for(int x = 0; x < loops; ++x) {
+      Thread.sleep(1000);
+    }
   }
 
   @GET

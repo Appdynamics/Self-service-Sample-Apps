@@ -7,3 +7,14 @@ sampleapp/repo/javax*
 sampleapp/repo/mysql*
 sampleapp/repo/org*
 agents/*
+mysql.port
+npm-debug.log
+.nvm
+AppServerAgent
+MachineAgent
+DatabaseAgent
+log
+status-*
+cookies
+tomcat*
+node

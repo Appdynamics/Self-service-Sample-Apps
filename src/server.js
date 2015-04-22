@@ -53,6 +53,8 @@ setupStoreFrontCall('POST', 'add', '');
 setupStoreFrontCall('PUT', 'update', '/put');
 setupStoreFrontCall('DELETE', 'delete', '/del');
 setupStoreFrontCall('GET', 'exceptionJava', '/exception');
+setupStoreFrontCall('GET', 'exceptionSql', '/sqlexception');
+setupStoreFrontCall('GET', 'slowrequest', '/slowrequest');
 
 domain.on('error', function (err) {
 });
