@@ -15,19 +15,25 @@ import javax.ws.rs.core.MediaType;
 
 @Path("/appdserver")
 public class SampleAppREST {
-  final String mysql_port_file = System.getenv().get("APPD_MYSQL_PORT_FILE");
+  final String db_port_file = System.getenv().get("APPD_DB_PORT_FILE");
 
   private Connection getConnection() throws Exception {
-    String port = "8889";
+    String db = "mysql";
+    String port = "3306";
     try {
-      BufferedReader bufferedReader = new BufferedReader(new FileReader(mysql_port_file));
+      BufferedReader bufferedReader = new BufferedReader(new FileReader(db_port_file));
+      db = bufferedReader.readLine().trim();
       port = bufferedReader.readLine().trim();
       bufferedReader.close();
     } catch (Exception exception) {}
 
-    Class.forName("com.mysql.jdbc.Driver").newInstance();
+    if (db == "mysql") {
+      Class.forName("com.mysql.jdbc.Driver").newInstance();
+    } else {
+      Class.forName("org.postgresql.Driver").newInstance();
+    }
     return DriverManager
-      .getConnection("jdbc:mysql://localhost:" + port + "/AppDemo",
+      .getConnection("jdbc:" + db + "://localhost:" + port + "/AppDemo",
         "demouser",
         "demouser"
       );

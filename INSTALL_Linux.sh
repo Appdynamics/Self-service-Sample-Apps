@@ -19,12 +19,13 @@ SCRIPT_DIR="$(readlink -f "$0" | xargs dirname)"
 
 JAVA_PORT=8887
 NODE_PORT=8888
-MYSQL_PORT=3306
+DB_PORT=3306
 NODE_VERSION="0.10.33"
 NOPROMPT=false
 PROMPT_EACH_REQUEST=false
 TIMEOUT=150
 APP_STARTED=false
+ARCH=$(uname -m)
 
 # Remove fourth number from Node agent version.
 if [ "${NODE_AGENT_VERSION%?.*.*.*}" != $NODE_AGENT_VERSION ]; then
@@ -39,7 +40,7 @@ mkdir -p "$RUN_LOG"
 export NVM_DIR="$RUN_PATH/.nvm"
 mkdir -p "$NVM_DIR"
 
-export APPD_MYSQL_PORT_FILE="$RUN_PATH/mysql.port"
+export APPD_DB_PORT_FILE="$RUN_PATH/mysql.port"
 export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 
 about() {
@@ -90,7 +91,7 @@ while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
     s) CONTROLLER_SSL=$OPTARG;;
     n) NODE_PORT=$OPTARG;;
     j) JAVA_PORT=$OPTARG;;
-    m) MYSQL_PORT=$OPTARG;;
+    m) DB_PORT=$OPTARG;;
     h) usage;;
     y) NOPROMPT=true;;
     d) removeEnvironment;;
@@ -243,6 +244,7 @@ installTomcat() {
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar"
   performTomcatDependencyDownload "org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar"
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar"
+  performTomcatDependencyDownload "org/postgresql/postgresql/9.4-1200-jdbc41/postgresql-9.4-1200-jdbc41.jar"
 }
 
 startTomcat() {
@@ -287,14 +289,56 @@ installNode() {
   installNodeDependency "AppDynamics Agent" "appdynamics" "$NODE_AGENT_VERSION"
 }
 
+getDatabaseChoice() {
+  local RESPONSE=
+  while true; do
+    read -p "Do you wish to use a standlone instance of PostgreSQL Database (p) or an existing MySQL Database (m) [n to quit]?" RESPONSE
+    case "$RESPONSE" in
+      [Pp]* ) DB_CHOICE="posgreSQL"; break;;
+      [Mm]* ) DB_CHOICE="mysql"; break;;
+      [Nn]* ) echo "Exiting."; exit;;
+    esac
+  done
+}
+
 verifyMySQL() {
   printf "Checking MySQL..."
   if ! which mysql >/dev/null ; then
     echo "Cannot find mysql. Please make sure it is installed and in your PATH. Exiting."
     exit 1
   fi
-  echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
   echo " done."
+}
+
+verifyPostgreSQL() {
+  printf "Checking PostgreSQL..."
+  if [ ! -f "$RUN_PATH/pgsql/bin/psql" ]; then
+    local VERSION=
+    if [ "$ARCH" = "x86_64" ]; then VERSION="x64-"; fi
+    local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-linux-${VERSION}binaries.tar.gz"
+    curl -L -o "$RUN_PATH/postgresql.tar.gz" "$DOWNLOAD_URL"
+    echo "Unpacking PostgreSQL (this process may take a few minutes)..."
+    gunzip -c "$RUN_PATH/postgresql.tar.gz" | tar xopf -
+    rm "$RUN_PATH/postgresql.tar.gz"
+  fi
+  "$RUN_PATH/pgsql/bin/initdb" -D "$RUN_PATH/pgsql/data"
+}
+
+startPostgreSQL() {
+  echo "Starting PostgreSQL..."
+  mkdir -p "$RUN_PATH/pgsql/socket"
+  if ! "$RUN_PATH/pgsql/bin/pg_ctl" -D "$RUN_PATH/pgsql/data" start -l "$RUN_LOG/psql" -w -o "-p $DB_PORT" ; then
+    echo "Error with the PostgreSQL Database, exiting."
+    exit 1
+  fi
+}
+
+createPostgreSQLDatabase() {
+  "$RUN_PATH/pgsql/bin/createdb" -p "$DB_PORT" AppDemo  2>/dev/null
+  "$RUN_PATH/pgsql/bin/createuser" -p "$DB_PORT" -s demouser  2>/dev/null
+  "$RUN_PATH/pgsql/bin/psql" -U demouser -p "$DB_PORT" -d AppDemo -f "$RUN_PATH/src/sql/postgresql.sql" 2>/dev/null
+  echo "postgresql" > "$APPD_DB_PORT_FILE"
+  echo "$DB_PORT" >> "$APPD_DB_PORT_FILE"
 }
 
 verifyJava() {
@@ -309,12 +353,13 @@ verifyJava() {
 createMySQLDatabase() {
   echo ""
   echo "Please enter your MySQL root password to install the sample app database."
-  mysql -u root -p < "$SCRIPT_DIR/src/mysql.sql"
+  mysql -u root -p < "$SCRIPT_DIR/src/sql/mysql.sql"
   if [ $? -ne 0 ]; then
     verifyUserAgreement "The mysql script install/check failed. Do you wish to try again?" true
     createMySQLDatabase
   fi
-  echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
+  echo "mysql" > "$APPD_DB_PORT_FILE"
+  echo "$DB_PORT" >> "$APPD_DB_PORT_FILE"
   echo ""
   return 0
 }
@@ -351,15 +396,27 @@ require(\"appdynamics\").profile({
   startProcess "node" "Node server (port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
 }
 
+performInitalLoad() {
+  echo "Performing Inital Load..."
+  local LOAD_HITS=10
+  for LOOPS in $(seq 1 "$LOAD_HITS")
+  do
+    echo "Performing Load Hit $LOOPS of $LOAD_HITS"
+    curl "http://localhost:$NODE_PORT/retrieve?id=1" 2>/dev/null >/dev/null
+    sleep 1
+  done
+}
+
 onExitCleanup() {
   trap - TERM; stty echo
   echo ""
   if ${APP_STARTED} ; then
     echo "Killing all processes and cleaning up..."
-    rm -f "$RUN_PATH/cookies"
-    rm -f "$RUN_PATH/status-"*
-    rm -f "$RUN_PATH/tomcat"
-    rm -f "$RUN_PATH/mysql.port"
+    "$RUN_PATH/pgsql/bin/pg_ctl" -D "$RUN_PATH/pgsql/data" stop -m i 2>/dev/null
+    rm -rf "$RUN_PATH/cookies"
+    rm -rf "$RUN_PATH/status-"*
+    rm -rf "$APPD_TOMCAT_FILE"
+    rm -rf "$APPD_DB_PORT_FILE"
   fi
   kill 0
 }
@@ -368,8 +425,15 @@ trap "exit" INT TERM && trap onExitCleanup EXIT
 startup
 installDependencies
 verifyJava
-verifyMySQL
-createMySQLDatabase
+getDatabaseChoice
+if [ "$DB_CHOICE" = "mysql" ]; then
+  verifyMySQL
+  createMySQLDatabase
+else
+  verifyPostgreSQL
+  startPostgreSQL
+  createPostgreSQLDatabase
+fi
 installTomcat
 installNode
 installAgents
@@ -377,6 +441,7 @@ startMachineAgent
 startDatabaseAgent
 startTomcat
 startNode
+performInitalLoad
 
 echo ""
 echo "The AppDynamics sample app environment has been started."

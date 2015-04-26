@@ -23,7 +23,7 @@ SET APP_STARTED=false
 SET LOGGED_IN=false
 SET SCRIPT_DIR=%~dp0
 SET SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
-SET RUN_PATH=C:\AppDynamicsSampleApp
+SET RUN_PATH=%SCRIPT_DIR%
 SET NVM_DIR=%RUN_PATH%\.nvm
 SET NVM_HOME=%NVM_DIR%
 SET NVM_SYMLINK=C:\Program Files\nodejs
@@ -41,9 +41,6 @@ SET ucurl="%RUN_PATH%\utils\curl.exe"
 
 SET node="%NODE_DIR%\node.exe"
 SET npm=%node% "%NODE_PATH%\npm\bin\npm-cli.js"
-
-net session >nul 2>&1
-if not %errorLevel% == 0 echo Please run this script with administrative permissions. & GOTO :Exit
 
 if (%1)==() GOTO :startup
 :GETOPTS
@@ -208,7 +205,7 @@ GOTO :EOF
 
 :doNodeDependencyInstall
   echo Checking %1
-  %npm% install %1 -g
+  %npm% install -g %1
 GOTO :EOF
 
 :installNode
