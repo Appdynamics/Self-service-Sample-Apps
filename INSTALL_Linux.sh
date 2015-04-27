@@ -6,8 +6,7 @@ ACCOUNT_ACCESS_KEY="config-account-access-key"
 CONTROLLER_ADDRESS="config-controller-host"
 CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
-#NODE_AGENT_VERSION="config-nodejs-agent-version"
-NODE_AGENT_VERSION="4.0.4"
+NODE_AGENT_VERSION="config-nodejs-agent-version"
 
 # Linux-specific config
 APPLICATION_NAME="AppDynamics Sample App (Linux)"
@@ -40,7 +39,7 @@ mkdir -p "$RUN_LOG"
 export NVM_DIR="$RUN_PATH/.nvm"
 mkdir -p "$NVM_DIR"
 
-export APPD_DB_PORT_FILE="$RUN_PATH/mysql.port"
+export APPD_DB_PORT_FILE="$RUN_PATH/db.port"
 export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 
 about() {
@@ -78,6 +77,7 @@ removeEnvironment() {
   rm -rf "$RUN_PATH/tomcatrest"
   rm -rf "$RUN_PATH/log"
   rm -rf "$RUN_PATH/node_modules"
+  rm -rf "$RUN_PATH/pgsql"
   echo "Done"
   exit 0
 }
@@ -101,13 +101,6 @@ while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
     \?) echo "Invalid option: -$OPTARG!"; usage;;
   esac
 done
-
-if [ ${CONTROLLER_ADDRESS} = false ]; then
-  echo "No controller address specified."; usage
-fi
-if [ ${CONTROLLER_PORT} = false ]; then
-  echo "No controller port specified."; usage
-fi
 
 verifyUserAgreement() {
   if [ "$2" != true ]; then
@@ -245,6 +238,12 @@ installTomcat() {
   performTomcatDependencyDownload "org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar"
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar"
   performTomcatDependencyDownload "org/postgresql/postgresql/9.4-1200-jdbc41/postgresql-9.4-1200-jdbc41.jar"
+  performTomcatDependencyDownload "com/github/dblock/waffle/waffle-jna/1.7/waffle-jna-1.7.jar"
+  performTomcatDependencyDownload "net/java/dev/jna/jna/4.1.0/jna-4.1.0.jar"
+  performTomcatDependencyDownload "net/java/dev/jna/jna-platform/4.1.0/jna-platform-4.1.0.jar"
+  performTomcatDependencyDownload "org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar"
+  performTomcatDependencyDownload "com/google/guava/guava/18.0/guava-18.0.jar"
+  performTomcatDependencyDownload "org/slf4j/slf4j-simple/1.7.7/slf4j-simple-1.7.7.jar"
 }
 
 startTomcat() {
@@ -317,7 +316,7 @@ verifyPostgreSQL() {
     if [ "$ARCH" = "x86_64" ]; then VERSION="x64-"; fi
     local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-linux-${VERSION}binaries.tar.gz"
     curl -L -o "$RUN_PATH/postgresql.tar.gz" "$DOWNLOAD_URL"
-    echo "Unpacking PostgreSQL (this process may take a few minutes)..."
+    echo "Unpacking PostgreSQL..."
     gunzip -c "$RUN_PATH/postgresql.tar.gz" | tar xopf -
     rm "$RUN_PATH/postgresql.tar.gz"
   fi
@@ -326,7 +325,6 @@ verifyPostgreSQL() {
 
 startPostgreSQL() {
   echo "Starting PostgreSQL..."
-  mkdir -p "$RUN_PATH/pgsql/socket"
   if ! "$RUN_PATH/pgsql/bin/pg_ctl" -D "$RUN_PATH/pgsql/data" start -l "$RUN_LOG/psql" -w -o "-p $DB_PORT" ; then
     echo "Error with the PostgreSQL Database, exiting."
     exit 1
@@ -396,8 +394,8 @@ require(\"appdynamics\").profile({
   startProcess "node" "Node server (port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
 }
 
-performInitalLoad() {
-  echo "Performing Inital Load..."
+performInitialLoad() {
+  echo "Performing Initial Load..."
   local LOAD_HITS=10
   for LOOPS in $(seq 1 "$LOAD_HITS")
   do
@@ -441,7 +439,7 @@ startMachineAgent
 startDatabaseAgent
 startTomcat
 startNode
-performInitalLoad
+performInitialLoad
 
 echo ""
 echo "The AppDynamics sample app environment has been started."

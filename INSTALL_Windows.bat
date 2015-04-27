@@ -14,32 +14,31 @@ SET CONTROLLER_SSL=config-controller-ssl-enabled
 SET APPLICATION_NAME=AppDynamics Sample App (Windows)
 SET JAVA_PORT=8887
 SET NODE_PORT=8888
-SET MYSQL_PORT=3306
+SET DB_PORT=3306
 SET NODE_VERSION=0.10.33
 SET NOPROMPT=false
 SET PROMPT_EACH_REQUEST=false
-SET APP_STARTED=false
 
-SET LOGGED_IN=false
+SET SCRIPT_NAME=AppDemo.bat
 SET SCRIPT_DIR=%~dp0
 SET SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
 SET RUN_PATH=%SCRIPT_DIR%
 SET NVM_DIR=%RUN_PATH%\.nvm
 SET NVM_HOME=%NVM_DIR%
-SET NVM_SYMLINK=C:\Program Files\nodejs
 SET NODE_DIR=%NVM_HOME%\v%NODE_VERSION%
 SET NODE_PATH=%NODE_DIR%\node_modules
 
-SET APPD_MYSQL_PORT_FILE=%RUN_PATH%\mysql.port
+SET APPD_DB_PORT_FILE=%RUN_PATH%\db.port
 SET APPD_TOMCAT_FILE=%RUN_PATH%\tomcat
 
-SET INSTALL_PATH=false
+reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && set OSBIT=32 || set OSBIT=64
 
 mkdir "%RUN_PATH%" 2>NUL
 
 SET ucurl="%RUN_PATH%\utils\curl.exe"
 
-SET node="%NODE_DIR%\node.exe"
+if %OSBIT%==64 SET node="%NODE_DIR%\node64.exe"
+else SET node="%NODE_DIR%\node.exe"
 SET npm=%node% "%NODE_PATH%\npm\bin\npm-cli.js"
 
 if (%1)==() GOTO :startup
@@ -73,7 +72,7 @@ if (%1)==() GOTO :startup
   if /I %1 == -s SET CONTROLLER_SSL=%~2& shift
   if /I %1 == -n SET NODE_PORT=%~2& shift
   if /I %1 == -j SET JAVA_PORT=%~2& shift
-  if /I %1 == -m SET MYSQL_PORT=%~2& shift
+  if /I %1 == -m SET DB_PORT=%~2& shift
 :GETOPTS_END
   shift
 if not (%1)==() GOTO :GETOPTS
@@ -87,7 +86,7 @@ GOTO :EOF
 
 :usage
   CALL :about
-  echo usage: AppDemo.bat
+  echo usage: %SCRIPT_NAME%
   type "%SCRIPT_DIR%\usage"
   Exit /B 0
 GOTO :EOF
@@ -123,7 +122,18 @@ GOTO :EOF
 
 :removeEnvironment
   echo Removing Sample Application Environment...
-  rmdir /S /Q "%RUN_PATH%"
+  rmdir /S /Q "%NVM_DIR%" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/src/public/angular" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/src/public/bootstrap" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/src/public/jquery" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/node" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/AppServerAgent" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/DatabaseAgent" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/MachineAgent" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/tomcatrest" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/node_modules" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/pgsql" 2>NUL
+  rmdir /S /Q "%RUN_PATH%/utils" 2>NUL
   echo Done
   Exit /B 0
 GOTO :EOF
@@ -131,7 +141,7 @@ GOTO :EOF
 :performUnzip
   SET VB_ZIP_LOCATION=%~1
   SET VB_EXTRACT_LOCATION=%~2
-  mkdir "%VB_EXTRACT_LOCATION%" 2>NUL
+  mkdir "%VB_EXTRACT_LOCATION%"
   CALL cscript.exe "%SCRIPT_DIR%\vbs\unzip.vbs" >NUL
 GOTO :EOF
 
@@ -139,7 +149,7 @@ GOTO :EOF
   echo Checking curl...
   if exist "%RUN_PATH%\utils\curl.exe" GOTO :EOF
   CALL :verifyUserAgreement "curl needs to be downloaded, do you wish to continue?"
-  SET VB_DOWNLOAD_URL="http://www.paehl.com/open_source/?download=curl_741_0_ssl.zip"
+  SET VB_DOWNLOAD_URL="http://www.paehl.com/open_source/?download=curl_742_0_ssl.zip"
   SET VB_ZIP_LOCATION=%RUN_PATH%\curl.zip
   CALL cscript.exe "%SCRIPT_DIR%\vbs\download.vbs" >NUL
   CALL :performUnzip "%RUN_PATH%\curl.zip" "%RUN_PATH%\utils"
@@ -150,10 +160,19 @@ GOTO :EOF
   if not exist "%JAVA_HOME%\bin\java.exe" echo Please make sure your JAVA_HOME environment variable is defined correctly, exiting. & CALL :Exit
 GOTO :EOF
 
+:getDatabaseChoice
+  SET response=
+  :verifyDatabaseChoiceLoop
+  set /p response=Do you wish to use a standlone instance of PostgreSQL Database (p) or an existing MySQL Database (m) (or n to quit)?
+  if /I [%response%] == [p] SET DB_CHOICE=posgreSQL & GOTO :EOF
+  if /I [%response%] == [m] SET DB_CHOICE=mysql & GOTO :EOF
+  if /I [%response%] == [n] echo Exiting & CALL :Exit
+  GOTO :verifyDatabaseChoiceLoop
+GOTO :EOF
+
 :verifyMySQL
   for %%X in (mysql.exe) do (SET APPD_MYSQL_EXEC=%%~$PATH:X)
   if not defined APPD_MYSQL_EXEC echo MySQL is needed to continue.  Please ensure your PATH environment variable is properly configured to include where the mysql executable is located, exiting. & CALL :Exit
-  echo %MYSQL_PORT% > "%APPD_MYSQL_PORT_FILE%"
 GOTO :EOF
 
 :createMySQLDatabase
@@ -163,6 +182,39 @@ GOTO :EOF
     CALL :verifyUserAgreement "The mysql script install/check failed, do you wish to try again?" true
     CALL :createMySQLDatabase
   )
+  echo mysql > "%APPD_DB_PORT_FILE%"
+  echo %DB_PORT% >> "%APPD_DB_PORT_FILE%"
+GOTO :EOF
+
+:verifyPostgreSQL
+  echo Checking PostgreSQL...
+  if not exist "%RUN_PATH%/pgsql/bin/psql.exe" (
+    SET POSTGRESQL_VERSION=
+    if %OSBIT% == 64 SET POSTGRESQL_VERSION=x64-
+    SET POSTGRESQL_DOWNLOAD_URL=postgresql-9.4.1-3-windows-!POSTGRESQL_VERSION!binaries.zip
+    %ucurl% -q -o "%RUN_PATH%\postgresql.zip" -L http://get.enterprisedb.com/postgresql/!POSTGRESQL_DOWNLOAD_URL!
+    echo Unpacking PostgreSQL...
+    CALL :performUnzip "%RUN_PATH%\postgresql.zip" "%RUN_PATH%"
+    DEL "%RUN_PATH%\postgresql.zip" 2>NUL
+  )
+  "%RUN_PATH%\pgsql\bin\initdb.exe" -D "%RUN_PATH%\pgsql\data"
+GOTO :EOF
+
+:startPostgreSQL
+  echo Starting PostgreSQL...
+  "%RUN_PATH%\pgsql\bin\pg_ctl" -D "%RUN_PATH%\pgsql\data" start -l "%RUN_PATH%\pgsql\log" -w -o "-p %DB_PORT%"
+  if not %errorlevel% == 0 (
+    echo Error wit the PostgreSQL Database, exiting.
+    CALL :Exit
+  )
+GOTO :EOF
+
+:createPostgreSQLDatabase
+  "%RUN_PATH%\pgsql\bin\createdb.exe" -p "%DB_PORT%" AppDemo  2>NUL
+  "%RUN_PATH%\pgsql\bin\createuser.exe" -p "%DB_PORT%" -s demouser  2>NUL
+  "%RUN_PATH%\pgsql\bin\psql.exe" -U demouser -p "%DB_PORT%" -d AppDemo -f "%RUN_PATH%\src\sql\postgresql.sql" 2>NUL
+  echo postgresql > "%APPD_DB_PORT_FILE%"
+  echo %DB_PORT% >> "%APPD_DB_PORT_FILE%"
 GOTO :EOF
 
 :performTomcatDependencyDownload
@@ -176,8 +228,8 @@ GOTO :EOF
 :installTomcat
   echo Setting up Tomcat...
   echo %JAVA_PORT% > "%APPD_TOMCAT_FILE%"
-  mkdir %RUN_PATH%\tomcatrest\repo 2>NUL
-  mkdir %RUN_PATH%\tomcatrest\bin 2>NUL
+  mkdir "%RUN_PATH%\tomcatrest\repo" 2>NUL
+  mkdir "%RUN_PATH%\tomcatrest\bin" 2>NUL
   xcopy /e /y "%SCRIPT_DIR%\sampleapp" "%RUN_PATH%\tomcatrest" >NUL
   CALL :performTomcatDependencyDownload org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar
   CALL :performTomcatDependencyDownload org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar
@@ -201,6 +253,14 @@ GOTO :EOF
   CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar
   CALL :performTomcatDependencyDownload org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar
   CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar
+  CALL :performTomcatDependencyDownload org/postgresql/postgresql/9.4-1200-jdbc41/postgresql-9.4-1200-jdbc41.jar
+  CALL :performTomcatDependencyDownload com/github/dblock/waffle/waffle-jna/1.7/waffle-jna-1.7.jar
+  CALL :performTomcatDependencyDownload net/java/dev/jna/jna/4.1.0/jna-4.1.0.jar
+  CALL :performTomcatDependencyDownload net/java/dev/jna/jna-platform/4.1.0/jna-platform-4.1.0.jar
+  CALL :performTomcatDependencyDownload org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar
+  CALL :performTomcatDependencyDownload com/google/guava/guava/18.0/guava-18.0.jar
+  CALL :performTomcatDependencyDownload org/slf4j/slf4j-simple/1.7.7/slf4j-simple-1.7.7.jar
+  echo Done
 GOTO :EOF
 
 :doNodeDependencyInstall
@@ -216,9 +276,7 @@ GOTO :EOF
     DEL "%RUN_PATH%\nvm.zip" 2>NUL
   )
   echo root: %NVM_HOME% > "%NVM_DIR%\settings.txt"
-  echo path: %NVM_SYMLINK% >> "%NVM_DIR%\settings.txt"
-  %NVM_DIR%\nvm.exe install %NODE_VERSION%
-  %NVM_DIR%\nvm.exe use %NODE_VERSION%
+  "%NVM_DIR%\nvm.exe" install %NODE_VERSION%
 
   echo Checking Node Express...
   CALL :doNodeDependencyInstall express@4.12.3
@@ -235,7 +293,7 @@ GOTO :EOF
   SET AGENT_FILENAME=%~4
   echo Checking AppDynamics %AGENT_NAME%...
   if exist "%RUN_PATH%\%AGENT_DIR%\%AGENT_CHECK_FILE%" echo INSTALLED & GOTO :EOF
-  mkdir %RUN_PATH%\%AGENT_DIR% 2>NUL
+  mkdir "%RUN_PATH%\%AGENT_DIR%" 2>NUL
   echo Unpacking %AGENT_NAME% (this may take a few minutes)...
   CALL :performUnzip "%SCRIPT_DIR%\agents\%AGENT_FILENAME%" "%RUN_PATH%\%AGENT_DIR%"
   echo Finished unpacking %AGENT_NAME%.
@@ -250,13 +308,13 @@ GOTO :EOF
 :startMachineAgent
   echo Starting AppDynamics Machine Agent...
   CALL :writeControllerInfo "%RUN_PATH%\MachineAgent\conf\controller-info.xml"
-  start "_AppDynamicsSampleApp_ Machine Agent" /MIN "%JAVA_HOME%\bin\java.exe" -jar %RUN_PATH%\MachineAgent\machineagent.jar
+  start "_AppDynamicsSampleApp_ Machine Agent" /MIN "%JAVA_HOME%\bin\java.exe" -jar "%RUN_PATH%\MachineAgent\machineagent.jar"
 GOTO :EOF
 
 :startDatabaseAgent
   echo Starting AppDynamics Database Agent...
   CALL :writeControllerInfo "%RUN_PATH%\DatabaseAgent\conf\controller-info.xml"
-  start "_AppDynamicsSampleApp_ Database Agent" /MIN "%JAVA_HOME%\bin\java.exe" -jar %RUN_PATH%\DatabaseAgent\db-agent.jar
+  start "_AppDynamicsSampleApp_ Database Agent" /MIN "%JAVA_HOME%\bin\java.exe" -jar "%RUN_PATH%\DatabaseAgent\db-agent.jar"
 GOTO :EOF
 
 :startTomcat
@@ -264,7 +322,7 @@ GOTO :EOF
   for /D  %%d in ("%RUN_PATH%\AppServerAgent\ver*") do (
     CALL :writeControllerInfo "%%d\conf\controller-info.xml" "JavaServer" "JavaServer01"
   )
-  SET JAVA_OPTS=-javaagent:%RUN_PATH%\AppServerAgent\javaagent.jar
+  SET JAVA_OPTS=-javaagent:"%RUN_PATH%\AppServerAgent\javaagent.jar"
   echo Starting Tomcat server (port %JAVA_PORT%)...
   start "_AppDynamicsSampleApp_ Tomcat" /MIN "%RUN_PATH%\tomcatrest\bin\SampleAppServer.bat"
 GOTO :EOF
@@ -273,17 +331,24 @@ GOTO :EOF
   mkdir "%RUN_PATH%\node" 2>NUL
   if not exist "%RUN_PATH%\node\server.js" mklink "%RUN_PATH%\node\server.js" "%SCRIPT_DIR%\src\server.js" >NUL
   if not exist "%RUN_PATH%\node\public\angular" mklink /D "%SCRIPT_DIR%\src\public\angular" "%NODE_PATH%\angular" >NUL
-  if not exist "%RUN_PATH%\node\public\angular-route" mklink /D "%SCRIPT_DIR%\src\public\angular-route" "%NODE_PATH%\angular-route" >NUL
   if not exist "%RUN_PATH%\node\public\bootstrap" mklink /D "%SCRIPT_DIR%\src\public\bootstrap" "%NODE_PATH%\bootstrap\dist" >NUL
   if not exist "%RUN_PATH%\node\public\jquery" mklink /D "%SCRIPT_DIR%\src\public\jquery" "%NODE_PATH%\jquery\dist" >NUL
   if not exist "%RUN_PATH%\node\public" mklink /D "%RUN_PATH%\node\public" "%SCRIPT_DIR%\src\public" >NUL
   echo Starting Node server (port %NODE_PORT%)...
-  start "_AppDynamicsSampleApp_ Node" /MIN "%node%" "%RUN_PATH%\node\server.js"
+  start "_AppDynamicsSampleApp_ Node" /MIN %node% "%RUN_PATH%\node\server.js"
+GOTO :EOF
+
+:performInitialLoad
+  echo Performing Initial Load...
+  SET LOAD_HITS=10
+  FOR /L %%i IN (1,1,%LOAD_HITS%) DO (
+    echo Performing Load Hit %%i of %LOAD_HITS%
+    %ucurl% "http://localhost:%NODE_PORT%/retrieve?id=1" 1>nul 2>&1
+    timeout /t 1
+  )
 GOTO :EOF
 
 :startup
-  if %CONTROLLER_ADDRESS%==false echo No controller address specified. & GOTO :usage
-  if %CONTROLLER_PORT%==false echo No controller port specified. & GOTO :usage
   CALL :about
   if not %PROMPT_EACH_REQUEST% == true (
     CALL :verifyUserAgreement "Do you agree to install all of the required dependencies if they do not exist and continue?"
@@ -291,8 +356,15 @@ GOTO :EOF
   )
   CALL :downloadCurl
   CALL :verifyJava
-  CALL :verifyMySQL
-  CALL :createMySQLDatabase
+  CALL :getDatabaseChoice
+  IF %DB_CHOICE% == mysql (
+    CALL :verifyMySQL
+    CALL :createMySQLDatabase
+  ) else (
+    CALL :verifyPostgreSQL
+    CALL :startPostgreSQL
+    CALL :createPostgreSQLDatabase
+  )
   CALL :installTomcat
   CALL :installNode
   CALL :installAgents
@@ -300,6 +372,7 @@ GOTO :EOF
   CALL :startDatabaseAgent
   CALL :startTomcat
   CALL :startNode
+  CALL :performInitialLoad
 
   echo.
   echo The AppDynamics Sample App Environment has been started.
@@ -315,10 +388,11 @@ GOTO :EOF
 :Exit
   if not exist "%temp%\ExitBatchYes.txt" call :buildYes
   echo Killing all processes and cleaning up...
+  "%RUN_PATH%\pgsql\bin\pg_ctl" -D "%RUN_PATH%\pgsql\data" stop -m i 2>NUL
   DEL "%RUN_PATH%\cookies" 2>NUL
-  DEL "%RUN_PATH%\status" 2>NUL
   DEL "%RUN_PATH%\varout" 2>NUL
   DEL "%APPD_TOMCAT_FILE%" 2>NUL
+  DEL "%APPD_DB_PORT_FILE%" 2>NUL
   taskkill /FI "WINDOWTITLE eq _AppDynamicsSampleApp_*" 1>NUL 2>&1
   ENDLOCAL
   call :CtrlC <"%temp%\ExitBatchYes.txt" 1>nul 2>&1
