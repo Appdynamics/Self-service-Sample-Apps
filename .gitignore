@@ -4,10 +4,12 @@ src/public/jquery*
 src/public/angular*
 maven/target*
 sampleapp/repo/javax*
+sampleapp/repo/com/g*
 sampleapp/repo/mysql*
 sampleapp/repo/org*
+sampleapp/repo/net*
 agents/*
-mysql.port
+db.port
 npm-debug.log
 .nvm
 AppServerAgent
@@ -18,3 +20,5 @@ status-*
 cookies
 tomcat*
 node
+pgsql
+utils*
