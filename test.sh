@@ -313,26 +313,31 @@ getDatabaseChoice() {
 
 verifyMySQL() {
   printf "Checking MySQL..."
-  if [ "$DB_PORT" == "" ]; then
-    DB_PORT=3306
-  fi
   if ! which mysql >/dev/null ; then
     echo ""
     echo "Cannot find mysql. Please make sure it is installed and in your PATH. Exiting."
     exit 1
   fi
+  if [ "$DB_PORT" == "" ]; then
+    DB_PORT=3306
+  fi
   echo " done."
+}
+
+newVerifyPostgreSQL() {
+  echo "Checking PostgreSQL..."
+  POSTGRES_DIR="$RUN_PATH/pgsql"
+  # if ! which psql >/dev/null ; then; fi
+
+  # if [ ! -f "$POSTGRES_DIR/bin/psql" ]; then; fi
 }
 
 verifyPostgreSQL() {
   echo "Checking PostgreSQL..."
-  if [ "$DB_PORT" == "" ]; then
-    DB_PORT=5432
-  fi
-  if [ $PLATFORM == "Linux" ]; then
-    POSTGRES_DIR="$RUN_PATH/pgsql"
-    if [ ! -f "$POSTGRES_DIR/bin/psql" ]; then
-      echo "Downloading PostgreSQL..."
+  POSTGRES_DIR="$RUN_PATH/pgsql"
+  if [ ! -f "$POSTGRES_DIR/bin/psql" ]; then
+    echo "Downloading PostgreSQL..."
+    if [ $PLATFORM == "Linux" ]; then
       local VERSION=
       if [ "$ARCH" = "x86_64" ]; then VERSION="x64-"; fi
       local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-linux-${VERSION}binaries.tar.gz"
@@ -340,44 +345,30 @@ verifyPostgreSQL() {
       echo "Unpacking PostgreSQL..."
       gunzip -c "$RUN_PATH/postgresql.tar.gz" | tar xopf -
       rm "$RUN_PATH/postgresql.tar.gz"
-
-      if ! "$POSTGRES_DIR/bin/pg_ctl" -D "$POSTGRES_DIR/data" start -l "$RUN_LOG/psql" -w -o "-p $DB_PORT" ; then
-        echo "Error with the PostgreSQL Database. Exiting."
-        exit 1
-      fi
-    fi
-  elif [ $PLATFORM == "Mac" ]; then
-    POSTGRES_DIR="/Applications/Postgres.app/Contents/Versions/9.4"
-    if [ -d $POSTGRES_DIR ]; then
-      # TODO: Configure port number? Postgres.app defaults to 5432.
-      # TODO: But should not overwrite any pre-existing configuration.
-      open -g "/Applications/Postgres.app"
-    else
-      echo "Downloading Postgres.app for Mac OS X..."
-      local DOWNLOAD_URL="https://github.com/PostgresApp/PostgresApp/releases/download/9.4.1.2/Postgres-9.4.1.2.zip"
+    elif [ $PLATFORM == "Mac" ]; then
+      local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-osx-binaries.zip"
       curl -L -o "$RUN_PATH/postgresql.zip" "$DOWNLOAD_URL"
       echo "Unpacking PostgreSQL..."
       unzip -d "$RUN_PATH/" "$RUN_PATH/postgresql.zip"
       rm "$RUN_PATH/postgresql.zip"
-      # TODO: Configure port number? Postgres.app defaults to 5432.
-      open -g "$RUN_PATH/Postgres.app"
-      echo ""
-      echo "When prompted, please approve copy of Postgres.app to Applications folder..."
-      while [ ! -d "/Applications/Postgres.app" ]; do
-        sleep 2
-      done
+    else
+      echo "Invalid platform setting. Exiting."
+      exit 1
     fi
-    echo "Found Postgres.app in Applications folder."
-    sleep 1
-  else
-    echo "Invalid platform setting. Exiting."
-    exit 1
+  fi
+
+  # Start PostgreSQL
+  if [ "$DB_PORT" == "" ]; then
+    DB_PORT=5439
   fi
   "$POSTGRES_DIR/bin/initdb" -D "$POSTGRES_DIR/data"
+  if ! "$POSTGRES_DIR/bin/pg_ctl" -D "$POSTGRES_DIR/data" start -l "$RUN_LOG/psql" -w -o "-p $DB_PORT" ; then
+    echo "Error with the PostgreSQL Database. Exiting."
+    exit 1
+  fi
 }
 
 createPostgreSQLDatabase() {
-  echo "$POSTGRES_DIR/bin/createdb -p $DB_PORT $DB_NAME  2>/dev/null"
   "$POSTGRES_DIR/bin/createdb" -p "$DB_PORT" $DB_NAME  2>/dev/null
   "$POSTGRES_DIR/bin/createuser" -p "$DB_PORT" -s demouser  2>/dev/null
   "$POSTGRES_DIR/bin/psql" -U demouser -p "$DB_PORT" -d $DB_NAME -f "$RUN_PATH/src/sql/postgresql.sql" 2>/dev/null
@@ -434,6 +425,7 @@ require(\"appdynamics\").profile({
 });
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$CONTROLLER_SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
   cat "$SCRIPT_DIR/src/server.js" >> "$RUN_PATH/node/server.js"
+  echo "ln -sf \"$NVM_DIR/v$NODE_VERSION/lib/node_modules/angular/\" \"$SCRIPT_DIR/src/public/angular\""
   ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/angular/" "$SCRIPT_DIR/src/public/angular"
   ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"
   ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/jquery/dist/" "$SCRIPT_DIR/src/public/jquery"
@@ -457,9 +449,7 @@ onExitCleanup() {
   echo ""
   if ${APP_STARTED} ; then
     echo "Killing all processes and cleaning up..."
-    if [ $PLATFORM == "Linux" ]; then
-      "$RUN_PATH/pgsql/bin/pg_ctl" -D "$RUN_PATH/pgsql/data" stop -m i 2>/dev/null
-    fi
+    "$RUN_PATH/pgsql/bin/pg_ctl" -D "$RUN_PATH/pgsql/data" stop -m i 2>/dev/null
     rm -rf "$RUN_PATH/cookies"
     rm -rf "$RUN_PATH/status-"*
     rm -rf "$APPD_TOMCAT_FILE"
