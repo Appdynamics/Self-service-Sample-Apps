@@ -48,6 +48,7 @@
       var activeLoop, performLoopGet, recurses, setupProductUpdate;
       $scope.products = [];
       $scope.ready = false;
+      $scope.activeTab = 0;
       setupProductUpdate = function(product) {
         product.loading = false;
         product.stock = parseInt(product.stock, 10);
@@ -110,6 +111,7 @@
           setupProductUpdate(data[product]);
         }
         $scope.ready = true;
+        $scope.activeTab = 1;
         return null;
       });
       $scope.looping = false;
@@ -155,6 +157,8 @@
             delay: $scope.delay
           }
         }).success(function() {
+          recurses = 10;
+          performLoopGet();
           return $scope.slowRequest = false;
         }).error(function() {
           return $scope.slowRequest = false;
@@ -229,7 +233,7 @@
       $scope.getSqlExceptions = function() {
         return $rootScope.exceptionsSql;
       };
-      return $scope.raiseSqlException = function() {
+      $scope.raiseSqlException = function() {
         $scope.raisingSql = true;
         return $http.get('/exceptionSql', {
           method: 'GET'
@@ -241,6 +245,17 @@
           return $scope.raisingSql = false;
         });
       };
+
+      $scope.isTabActive = function(tab) {
+        return parseInt($scope.activeTab, 10) == parseInt(tab, 10);
+      };
+
+      $scope.activateTab = function(tab) {
+        debugger;
+        $scope.activeTab = tab;
+      };
+
+      return null;
     }
   ]);
 

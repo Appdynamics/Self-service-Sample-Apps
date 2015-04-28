@@ -32,6 +32,7 @@ app.controller 'AdminController', [
   ($scope, $http, $rootScope, $timeout) ->
     $scope.products = []
     $scope.ready = false
+    $scope.activeTab = 0
 
     setupProductUpdate = (product) ->
       product.loading = false
@@ -75,6 +76,7 @@ app.controller 'AdminController', [
           if not data.hasOwnProperty product then continue
           setupProductUpdate data[product]
         $scope.ready = true
+        $scope.activeTab = 1
         null
 
     $scope.looping = false
@@ -116,6 +118,8 @@ app.controller 'AdminController', [
         params:
           delay: $scope.delay
       .success ->
+        recurses = 10
+        performLoopGet()
         $scope.slowRequest = false
       .error ->
         $scope.slowRequest = false
@@ -188,6 +192,14 @@ app.controller 'AdminController', [
       .error ->
         alert 'Unable to raise exception.'
         $scope.raisingSql = false
+
+    $scope.isTabActive = (tab) ->
+      parseInt($scope.activeTab, 10) == parseInt(tab, 10)
+
+    $scope.activateTab = (tab) ->
+      $scope.activeTab = tab
+
+    null
 ]
 
 app.directive 'adLoader', [
