@@ -6,11 +6,11 @@ ACCOUNT_ACCESS_KEY="config-account-access-key"
 CONTROLLER_ADDRESS="config-controller-host"
 CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
-NODE_AGENT_VERSION="config-nodejs-agent-version"
+# NODE_AGENT_VERSION="config-nodejs-agent-version"
+NODE_AGENT_VERSION="4.0.4"
 
 # Mac-specific Config
-APPLICATION_NAME="AppDynamics Sample App (Mac)"
-SCRIPT_NAME="INSTALL_Mac.sh"
+PLATFORM="Mac"
 export JAVA_HOME=$(/usr/libexec/java_home)
 pushd `dirname $0` > /dev/null
 SCRIPT_DIR=`pwd -P`
@@ -21,26 +21,32 @@ popd > /dev/null
 
 JAVA_PORT=8887
 NODE_PORT=8888
-MYSQL_PORT=3306
+DB_PORT=
+POSTGRES_DIR=
 NODE_VERSION="0.10.33"
 NOPROMPT=false
 PROMPT_EACH_REQUEST=false
 TIMEOUT=150
 APP_STARTED=false
+ARCH=$(uname -m)
+
+APPLICATION_NAME="AppDynamics Sample App ($PLATFORM)"
+SCRIPT_NAME="INSTALL_$PLATFORM.sh"
 
 # Remove fourth number from Node agent version.
 if [ "${NODE_AGENT_VERSION%?.*.*.*}" != $NODE_AGENT_VERSION ]; then
   NODE_AGENT_VERSION="${NODE_AGENT_VERSION%.*}"
 fi
 
-RUN_PATH="/var/tmp/AppDynamicsSampleApp"
+RUN_PATH="$SCRIPT_DIR"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
 NOW=$(date +"%s")
 RUN_LOG="$RUN_PATH/log/$NOW"
 mkdir -p "$RUN_LOG"
 export NVM_DIR="$RUN_PATH/.nvm"
+mkdir -p "$NVM_DIR"
 
-export APPD_MYSQL_PORT_FILE="$RUN_PATH/mysql.port"
+export APPD_DB_PORT_FILE="$RUN_PATH/db.port"
 export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 
 about() {
@@ -67,12 +73,22 @@ usage() {
 
 removeEnvironment() {
   echo "Removing Sample Application environment..."
-  rm -rf "$RUN_PATH"
+  rm -rf "$NVM_DIR"
+  rm -rf "$RUN_PATH/src/public/angular"
+  rm -rf "$RUN_PATH/src/public/bootstrap"
+  rm -rf "$RUN_PATH/src/public/jquery"
+  rm -rf "$RUN_PATH/node"
+  rm -rf "$RUN_PATH/AppServerAgent"
+  rm -rf "$RUN_PATH/DatabaseAgent"
+  rm -rf "$RUN_PATH/MachineAgent"
+  rm -rf "$RUN_PATH/tomcatrest"
+  rm -rf "$RUN_PATH/log"
+  rm -rf "$RUN_PATH/node_modules"
+  rm -rf "$RUN_PATH/pgsql"
   echo "Done"
   exit 0
 }
 
-if ! [ $(id -u) = 0 ]; then echo "Please run this script as root: sudo sh $SCRIPT_NAME"; exit 0; fi
 while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
   case "$OPT" in
     c) CONTROLLER_ADDRESS=$OPTARG;;
@@ -82,7 +98,7 @@ while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
     s) CONTROLLER_SSL=$OPTARG;;
     n) NODE_PORT=$OPTARG;;
     j) JAVA_PORT=$OPTARG;;
-    m) MYSQL_PORT=$OPTARG;;
+    m) DB_PORT=$OPTARG;;
     h) usage;;
     y) NOPROMPT=true;;
     d) removeEnvironment;;
@@ -93,13 +109,6 @@ while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
   esac
 done
 
-if [ ${CONTROLLER_ADDRESS} = false ]; then
-  echo "No controller address specified."; usage
-fi
-if [ ${CONTROLLER_PORT} = false ]; then
-  echo "No controller port specified."; usage
-fi
-
 verifyUserAgreement() {
   if [ "$2" != true ]; then
     if ${NOPROMPT} ; then return 0; fi
@@ -107,7 +116,7 @@ verifyUserAgreement() {
   local RESPONSE=
   while true; do
     read -p "$1 (y/n) " RESPONSE
-    case $RESPONSE in
+    case "$RESPONSE" in
       [Yy]* ) break;;
       [Nn]* ) echo "Exiting."; exit;;
     esac
@@ -164,7 +173,7 @@ startProcess() {
     done
     echo ""
     if [ "$(head -n 1 "$RUN_PATH/status-$LOG_KEY")" != "$LOG_SUCCESS_TEXT" -o "$LOOPS" -eq "$TIMEOUT" ]; then
-      echo "Unable to start $PROCESS_NAME, exiting."
+      echo "Unable to start $PROCESS_NAME. Exiting."
       exit 1
     fi
     echo "$PROCESS_NAME started."
@@ -235,6 +244,13 @@ installTomcat() {
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar"
   performTomcatDependencyDownload "org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar"
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar"
+  performTomcatDependencyDownload "org/postgresql/postgresql/9.4-1200-jdbc41/postgresql-9.4-1200-jdbc41.jar"
+  performTomcatDependencyDownload "com/github/dblock/waffle/waffle-jna/1.7/waffle-jna-1.7.jar"
+  performTomcatDependencyDownload "net/java/dev/jna/jna/4.1.0/jna-4.1.0.jar"
+  performTomcatDependencyDownload "net/java/dev/jna/jna-platform/4.1.0/jna-platform-4.1.0.jar"
+  performTomcatDependencyDownload "org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar"
+  performTomcatDependencyDownload "com/google/guava/guava/18.0/guava-18.0.jar"
+  performTomcatDependencyDownload "org/slf4j/slf4j-simple/1.7.7/slf4j-simple-1.7.7.jar"
 }
 
 startTomcat() {
@@ -243,11 +259,20 @@ startTomcat() {
     writeControllerInfo "$dir/conf/controller-info.xml" "JavaServer" "JavaServer01"
   done
   export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
-  startProcess "tomcat" "Tomcat server (port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR:"
+  startProcess "Tomcat" "Tomcat Server (Port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR:"
 }
 
 setupNodeNvm() {
   [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+}
+
+installNodeDependency() {
+  local DEPENDENCY_NAME="$1"; local DEPENDENCY_INSTALL="$2"; local DEPENDENCY_VERSION="$3"
+
+  echo "Installing (Node) $DEPENDENCY_NAME..."
+  if ! npm list -g "$DEPENDENCY_INSTALL" >/dev/null ; then
+    npm install -g "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
+  else echo "Already installed."; fi
 }
 
 installNode() {
@@ -256,44 +281,114 @@ installNode() {
   if ! command -v nvm 2>/dev/null >/dev/null ; then
     verifyUserAgreement "Node needs to be downloaded. Do you wish to continue?"
     curl https://raw.githubusercontent.com/creationix/nvm/v0.23.3/install.sh | NVM_DIR="$NVM_DIR" sh;
+
     echo "Initializing nvm automatically..."
     setupNodeNvm
   fi
-  nvm install 0.10.33
+  nvm install "$NODE_VERSION"
 
-  echo "Installing Node Express... "
-  if ! npm list express >/dev/null ; then npm install express@4.12.3; else echo "Already installed."; fi
+  installNodeDependency "Express" "express" "4.12.3"
+  installNodeDependency "Request" "request" "2.55.0"
+  installNodeDependency "jQuery" "jquery" "2.1.3"
+  installNodeDependency "Bootstrap" "bootstrap" "3.3.4"
+  installNodeDependency "AngularJS" "angular" "1.3.14"
+  installNodeDependency "AppDynamics Agent" "appdynamics" "$NODE_AGENT_VERSION"
+}
 
-  echo "Installing Node Request... "
-  if ! npm list request >/dev/null ; then npm install request@2.55.0; else echo "Already installed."; fi
-
-  echo "Installing jQuery... "
-  if ! npm list jquery >/dev/null ; then npm install jquery@2.1.3; else echo "Already installed."; fi
-
-  echo "Installing Bootstrap... "
-  if ! npm list bootstrap >/dev/null ; then npm install bootstrap@3.3.4; else echo "Already installed."; fi
-
-  echo "Installing AngularJS... "
-  if ! npm list angular >/dev/null ; then npm install angular@1.3.14; else echo "Already installed."; fi
-
-  echo "Installing AppDynamics Node.js Agent... "
-  if ! npm list appdynamics >/dev/null ; then npm install "appdynamics@$NODE_AGENT_VERSION"; else echo "Already installed."; fi
+getDatabaseChoice() {
+  local RESPONSE=
+  while true; do
+    echo "Choose database to use with this sample app:"
+    echo "  1. Install PostgreSQL."
+    echo "  2. Use existing MySQL instance."
+    echo "  3. Quit this installer."
+    read -p "Enter your choice: " RESPONSE
+    case "$RESPONSE" in
+      [1]* ) DB_CHOICE="postgres"; break;;
+      [2]* ) DB_CHOICE="mysql"; break;;
+      [3]* ) echo "Exiting."; exit;;
+    esac
+  done
 }
 
 verifyMySQL() {
   printf "Checking MySQL..."
-  if ! which mysql >/dev/null ; then
-    echo "Cannot find mysql. Please make sure it is installed and in your PATH. Exiting.";
-    exit 1;
+  if [ DB_PORT == "" ]; then
+    DB_PORT=3306
   fi
-  echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
+  if ! which mysql >/dev/null ; then
+    echo ""
+    echo "Cannot find mysql. Please make sure it is installed and in your PATH. Exiting."
+    exit 1
+  fi
   echo " done."
+}
+
+verifyPostgreSQL() {
+  echo "Checking PostgreSQL..."
+  if [ DB_PORT == "" ]; then
+    DB_PORT=5432
+  fi
+  if [ $PLATFORM == "Linux" ]; then
+    POSTGRES_DIR="$RUN_PATH/pgsql"
+    if [ ! -f "$POSTGRES_DIR/bin/psql" ]; then
+      echo "Downloading PostgreSQL..."
+      local VERSION=
+      if [ "$ARCH" = "x86_64" ]; then VERSION="x64-"; fi
+      local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-linux-${VERSION}binaries.tar.gz"
+      curl -L -o "$RUN_PATH/postgresql.tar.gz" "$DOWNLOAD_URL"
+      echo "Unpacking PostgreSQL..."
+      gunzip -c "$RUN_PATH/postgresql.tar.gz" | tar xopf -
+      rm "$RUN_PATH/postgresql.tar.gz"
+
+      if ! "$POSTGRES_DIR/bin/pg_ctl" -D "$POSTGRES_DIR/data" start -l "$RUN_LOG/psql" -w -o "-p $DB_PORT" ; then
+        echo "Error with the PostgreSQL Database. Exiting."
+        exit 1
+      fi
+    fi
+  elif [ $PLATFORM == "Mac" ]; then
+    POSTGRES_DIR="/Applications/Postgres.app/Contents/Versions/9.4"
+    if [ -d $POSTGRES_DIR ]; then
+      # TODO: Configure port number? Postgres.app defaults to 5432.
+      # TODO: But should not overwrite any pre-existing configuration.
+      open "/Applications/Postgres.app"
+    else
+      echo "Downloading Postgres.app for Mac OS X..."
+      local DOWNLOAD_URL="https://github.com/PostgresApp/PostgresApp/releases/download/9.4.1.2/Postgres-9.4.1.2.zip"
+      curl -L -o "$RUN_PATH/postgresql.zip" "$DOWNLOAD_URL"
+      echo "Unpacking PostgreSQL..."
+      unzip -d "$RUN_PATH/" "$RUN_PATH/postgresql.zip"
+      rm "$RUN_PATH/postgresql.zip"
+      # TODO: Configure port number? Postgres.app defaults to 5432.
+      open "$RUN_PATH/Postgres.app"
+      echo ""
+      echo "When prompted, please approve copy of Postgres.app to Applications folder..."
+      while [ ! -d "/Applications/Postgres.app" ]; do
+        sleep 2
+      done
+    fi
+    echo "Found Postgres.app in Applications folder."
+    sleep 1
+  else
+    echo "Invalid platform setting. Exiting."
+    exit 1
+  fi
+  "$POSTGRES_DIR/bin/initdb" -D "$POSTGRES_DIR/data"
+}
+
+createPostgreSQLDatabase() {
+  "$POSTGRES_DIR/bin/createdb" -p "$DB_PORT" AppDemo  2>/dev/null
+  "$POSTGRES_DIR/bin/createuser" -p "$DB_PORT" -s demouser  2>/dev/null
+  "$POSTGRES_DIR/bin/psql" -U demouser -p "$DB_PORT" -d AppDemo -f "$RUN_PATH/src/sql/postgresql.sql" 2>/dev/null
+  echo "postgresql" > "$APPD_DB_PORT_FILE"
+  echo "$DB_PORT" >> "$APPD_DB_PORT_FILE"
 }
 
 verifyJava() {
   printf "Checking Java..."
-  if ! which java >/dev/null; then
-    echo "Cannot find java. Please make sure it is installed and in your PATH. Exiting."
+  if [ ! -f "$JAVA_HOME/bin/java" ]; then
+    echo ""
+    echo "Cannot find java. Please make sure JAVA_HOME is configured properly. Exiting."
     exit 1;
   fi
   echo " done."
@@ -302,12 +397,13 @@ verifyJava() {
 createMySQLDatabase() {
   echo ""
   echo "Please enter your MySQL root password to install the sample app database."
-  mysql -u root -p < "$SCRIPT_DIR/src/mysql.sql"
+  mysql -u root -p < "$SCRIPT_DIR/src/sql/mysql.sql"
   if [ $? -ne 0 ]; then
     verifyUserAgreement "The mysql script install/check failed. Do you wish to try again?" true
     createMySQLDatabase
   fi
-  echo "$MYSQL_PORT" > "$APPD_MYSQL_PORT_FILE"
+  echo "mysql" > "$APPD_DB_PORT_FILE"
+  echo "$DB_PORT" >> "$APPD_DB_PORT_FILE"
   echo ""
   return 0
 }
@@ -337,11 +433,22 @@ require(\"appdynamics\").profile({
 });
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$CONTROLLER_SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
   cat "$SCRIPT_DIR/src/server.js" >> "$RUN_PATH/node/server.js"
-  ln -sf "$RUN_PATH/node_modules/angular/" "$SCRIPT_DIR/src/public/angular"
-  ln -sf "$RUN_PATH/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"
-  ln -sf "$RUN_PATH/node_modules/jquery/dist/" "$SCRIPT_DIR/src/public/jquery"
+  ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/angular/" "$SCRIPT_DIR/src/public/angular"
+  ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"
+  ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/jquery/dist/" "$SCRIPT_DIR/src/public/jquery"
   if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
   startProcess "node" "Node server (port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
+}
+
+performInitialLoad() {
+  echo "Performing Initial Load..."
+  local LOAD_HITS=10
+  for LOOPS in $(seq 1 "$LOAD_HITS")
+  do
+    echo "Performing Load Hit $LOOPS of $LOAD_HITS"
+    curl "http://localhost:$NODE_PORT/retrieve?id=1" 2>/dev/null >/dev/null
+    sleep 1
+  done
 }
 
 onExitCleanup() {
@@ -349,9 +456,13 @@ onExitCleanup() {
   echo ""
   if ${APP_STARTED} ; then
     echo "Killing all processes and cleaning up..."
-    rm -f "$RUN_PATH/cookies"
-    rm -f "$RUN_PATH/status-"*
-    rm -f "$RUN_PATH/tomcat"
+    if [ $PLATFORM == "Linux" ]; then
+      "$RUN_PATH/pgsql/bin/pg_ctl" -D "$RUN_PATH/pgsql/data" stop -m i 2>/dev/null
+    fi
+    rm -rf "$RUN_PATH/cookies"
+    rm -rf "$RUN_PATH/status-"*
+    rm -rf "$APPD_TOMCAT_FILE"
+    rm -rf "$APPD_DB_PORT_FILE"
   fi
   kill 0
 }
@@ -360,8 +471,14 @@ trap "exit" INT TERM && trap onExitCleanup EXIT
 startup
 installDependencies
 verifyJava
-verifyMySQL
-createMySQLDatabase
+getDatabaseChoice
+if [ "$DB_CHOICE" = "mysql" ]; then
+  verifyMySQL
+  createMySQLDatabase
+else
+  verifyPostgreSQL
+  createPostgreSQLDatabase
+fi
 installTomcat
 installNode
 installAgents
@@ -369,10 +486,11 @@ startMachineAgent
 startDatabaseAgent
 startTomcat
 startNode
+performInitialLoad
 
 echo ""
 echo "The AppDynamics sample app environment has been started."
 echo ""
-echo "To view the sample app and generate load, go to: http://localhost:$NODE_PORT"
+echo "To view the sample app and generate your own load, go to: http://localhost:$NODE_PORT"
 echo ""
 read -p "Press [Enter] key to quit the sample app server..." QUIT_VAR

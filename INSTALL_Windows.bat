@@ -164,7 +164,7 @@ GOTO :EOF
   SET response=
   :verifyDatabaseChoiceLoop
   set /p response=Do you wish to use a standlone instance of PostgreSQL Database (p) or an existing MySQL Database (m) (or n to quit)?
-  if /I [%response%] == [p] SET DB_CHOICE=posgreSQL & GOTO :EOF
+  if /I [%response%] == [p] SET DB_CHOICE=postgres & GOTO :EOF
   if /I [%response%] == [m] SET DB_CHOICE=mysql & GOTO :EOF
   if /I [%response%] == [n] echo Exiting & CALL :Exit
   GOTO :verifyDatabaseChoiceLoop

@@ -1,24 +1,28 @@
 #!/bin/bash
 
 # Configure these values on download.
-ACCOUNT_NAME="config-account-name"
-ACCOUNT_ACCESS_KEY="config-account-access-key"
-CONTROLLER_ADDRESS="config-controller-host"
-CONTROLLER_PORT="config-controller-port"
-CONTROLLER_SSL="config-controller-ssl-enabled"
-# NODE_AGENT_VERSION="config-nodejs-agent-version"
+ACCOUNT_NAME="customer1"
+ACCOUNT_ACCESS_KEY="SJ5b2m7d1$354"
+CONTROLLER_ADDRESS="http://qa-master"
+CONTROLLER_PORT="8080"
+CONTROLLER_SSL="true"
 NODE_AGENT_VERSION="4.0.4"
 
-# Linux-specific config
-PLATFORM="Linux"
-SCRIPT_DIR="$(readlink -f "$0" | xargs dirname)"
+# Mac-specific Config
+PLATFORM="Mac"
+export JAVA_HOME=$(/usr/libexec/java_home)
+pushd `dirname $0` > /dev/null
+SCRIPT_DIR=`pwd -P`
+popd > /dev/null
 
 
 ####  ALL FOLLOWING CODE SHARED BETWEEN LINUX AND MAC  ####
 
 JAVA_PORT=8887
 NODE_PORT=8888
-DB_PORT=3306
+DB_NAME=AppDemo
+DB_PORT=
+POSTGRES_DIR=
 NODE_VERSION="0.10.33"
 NOPROMPT=false
 PROMPT_EACH_REQUEST=false
@@ -265,7 +269,7 @@ setupNodeNvm() {
 installNodeDependency() {
   local DEPENDENCY_NAME="$1"; local DEPENDENCY_INSTALL="$2"; local DEPENDENCY_VERSION="$3"
 
-  echo "Installing (Node) $DEPENDENCY_NAME..."
+  echo "Installing $DEPENDENCY_NAME for Node.js..."
   if ! npm list -g "$DEPENDENCY_INSTALL" >/dev/null ; then
     npm install -g "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
   else echo "Already installed."; fi
@@ -309,7 +313,11 @@ getDatabaseChoice() {
 
 verifyMySQL() {
   printf "Checking MySQL..."
+  if [ "$DB_PORT" == "" ]; then
+    DB_PORT=3306
+  fi
   if ! which mysql >/dev/null ; then
+    echo ""
     echo "Cannot find mysql. Please make sure it is installed and in your PATH. Exiting."
     exit 1
   fi
@@ -317,31 +325,62 @@ verifyMySQL() {
 }
 
 verifyPostgreSQL() {
-  printf "Checking PostgreSQL..."
-  if [ ! -f "$RUN_PATH/pgsql/bin/psql" ]; then
-    local VERSION=
-    if [ "$ARCH" = "x86_64" ]; then VERSION="x64-"; fi
-    local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-linux-${VERSION}binaries.tar.gz"
-    curl -L -o "$RUN_PATH/postgresql.tar.gz" "$DOWNLOAD_URL"
-    echo "Unpacking PostgreSQL..."
-    gunzip -c "$RUN_PATH/postgresql.tar.gz" | tar xopf -
-    rm "$RUN_PATH/postgresql.tar.gz"
+  echo "Checking PostgreSQL..."
+  if [ "$DB_PORT" == "" ]; then
+    DB_PORT=5432
   fi
-  "$RUN_PATH/pgsql/bin/initdb" -D "$RUN_PATH/pgsql/data"
-}
+  if [ $PLATFORM == "Linux" ]; then
+    POSTGRES_DIR="$RUN_PATH/pgsql"
+    if [ ! -f "$POSTGRES_DIR/bin/psql" ]; then
+      echo "Downloading PostgreSQL..."
+      local VERSION=
+      if [ "$ARCH" = "x86_64" ]; then VERSION="x64-"; fi
+      local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-linux-${VERSION}binaries.tar.gz"
+      curl -L -o "$RUN_PATH/postgresql.tar.gz" "$DOWNLOAD_URL"
+      echo "Unpacking PostgreSQL..."
+      gunzip -c "$RUN_PATH/postgresql.tar.gz" | tar xopf -
+      rm "$RUN_PATH/postgresql.tar.gz"
 
-startPostgreSQL() {
-  echo "Starting PostgreSQL..."
-  if ! "$RUN_PATH/pgsql/bin/pg_ctl" -D "$RUN_PATH/pgsql/data" start -l "$RUN_LOG/psql" -w -o "-p $DB_PORT" ; then
-    echo "Error with the PostgreSQL Database. Exiting."
+      if ! "$POSTGRES_DIR/bin/pg_ctl" -D "$POSTGRES_DIR/data" start -l "$RUN_LOG/psql" -w -o "-p $DB_PORT" ; then
+        echo "Error with the PostgreSQL Database. Exiting."
+        exit 1
+      fi
+    fi
+  elif [ $PLATFORM == "Mac" ]; then
+    POSTGRES_DIR="/Applications/Postgres.app/Contents/Versions/9.4"
+    if [ -d $POSTGRES_DIR ]; then
+      # TODO: Configure port number? Postgres.app defaults to 5432.
+      # TODO: But should not overwrite any pre-existing configuration.
+      open -g "/Applications/Postgres.app"
+    else
+      echo "Downloading Postgres.app for Mac OS X..."
+      local DOWNLOAD_URL="https://github.com/PostgresApp/PostgresApp/releases/download/9.4.1.2/Postgres-9.4.1.2.zip"
+      curl -L -o "$RUN_PATH/postgresql.zip" "$DOWNLOAD_URL"
+      echo "Unpacking PostgreSQL..."
+      unzip -d "$RUN_PATH/" "$RUN_PATH/postgresql.zip"
+      rm "$RUN_PATH/postgresql.zip"
+      # TODO: Configure port number? Postgres.app defaults to 5432.
+      open -g "$RUN_PATH/Postgres.app"
+      echo ""
+      echo "When prompted, please approve copy of Postgres.app to Applications folder..."
+      while [ ! -d "/Applications/Postgres.app" ]; do
+        sleep 2
+      done
+    fi
+    echo "Found Postgres.app in Applications folder."
+    sleep 1
+  else
+    echo "Invalid platform setting. Exiting."
     exit 1
   fi
+  "$POSTGRES_DIR/bin/initdb" -D "$POSTGRES_DIR/data"
 }
 
 createPostgreSQLDatabase() {
-  "$RUN_PATH/pgsql/bin/createdb" -p "$DB_PORT" AppDemo  2>/dev/null
-  "$RUN_PATH/pgsql/bin/createuser" -p "$DB_PORT" -s demouser  2>/dev/null
-  "$RUN_PATH/pgsql/bin/psql" -U demouser -p "$DB_PORT" -d AppDemo -f "$RUN_PATH/src/sql/postgresql.sql" 2>/dev/null
+  echo "$POSTGRES_DIR/bin/createdb -p $DB_PORT $DB_NAME  2>/dev/null"
+  "$POSTGRES_DIR/bin/createdb" -p "$DB_PORT" $DB_NAME  2>/dev/null
+  "$POSTGRES_DIR/bin/createuser" -p "$DB_PORT" -s demouser  2>/dev/null
+  "$POSTGRES_DIR/bin/psql" -U demouser -p "$DB_PORT" -d $DB_NAME -f "$RUN_PATH/src/sql/postgresql.sql" 2>/dev/null
   echo "postgresql" > "$APPD_DB_PORT_FILE"
   echo "$DB_PORT" >> "$APPD_DB_PORT_FILE"
 }
@@ -349,6 +388,7 @@ createPostgreSQLDatabase() {
 verifyJava() {
   printf "Checking Java..."
   if [ ! -f "$JAVA_HOME/bin/java" ]; then
+    echo ""
     echo "Cannot find java. Please make sure JAVA_HOME is configured properly. Exiting."
     exit 1;
   fi
@@ -398,7 +438,7 @@ require(\"appdynamics\").profile({
   ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"
   ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/jquery/dist/" "$SCRIPT_DIR/src/public/jquery"
   if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
-  startProcess "node" "Node server (port $NODE_PORT)" "node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
+  startProcess "node" "Node server (port $NODE_PORT)" "$NVM_DIR/v$NODE_VERSION/bin/node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
 }
 
 performInitialLoad() {
@@ -417,7 +457,9 @@ onExitCleanup() {
   echo ""
   if ${APP_STARTED} ; then
     echo "Killing all processes and cleaning up..."
-    "$RUN_PATH/pgsql/bin/pg_ctl" -D "$RUN_PATH/pgsql/data" stop -m i 2>/dev/null
+    if [ $PLATFORM == "Linux" ]; then
+      "$RUN_PATH/pgsql/bin/pg_ctl" -D "$RUN_PATH/pgsql/data" stop -m i 2>/dev/null
+    fi
     rm -rf "$RUN_PATH/cookies"
     rm -rf "$RUN_PATH/status-"*
     rm -rf "$APPD_TOMCAT_FILE"
@@ -436,7 +478,6 @@ if [ "$DB_CHOICE" = "mysql" ]; then
   createMySQLDatabase
 else
   verifyPostgreSQL
-  startPostgreSQL
   createPostgreSQLDatabase
 fi
 installTomcat
@@ -449,8 +490,19 @@ startNode
 performInitialLoad
 
 echo ""
-echo "The AppDynamics sample app environment has been started."
+echo "Success! The AppDynamics sample app environment has been started."
+
+SAMPLE_APP_URL="http://localhost:$NODE_PORT"
+if [ $PLATFORM == "Linux" ]; then
+  xdg-open $SAMPLE_APP_URL
+elif [ $PLATFORM == "Mac" ]; then
+  open $SAMPLE_APP_URL
+else
+  echo "To continue, please navigate your web browser to:  http://localhost:$NODE_PORT"
+fi
+
 echo ""
-echo "To view the sample app and generate your own load, go to: http://localhost:$NODE_PORT"
-echo ""
-read -p "Press [Enter] key to quit the sample app server..." QUIT_VAR
+echo "Press Ctrl-C to quit the sample app server and clean up..."
+while true; do
+  sleep 1
+done
