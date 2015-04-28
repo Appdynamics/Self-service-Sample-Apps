@@ -1,0 +1,43 @@
+.center {
+    display: block;
+    margin: 0 auto;
+}
+
+.jumbotron {
+    background-color: #999999;
+}
+
+.caption h3 {
+    text-decoration: underline;
+}
+
+.glyphicon {
+  padding-left: 5px;
+}
+
+.row {
+  margin-top: 5px;
+}
+
+.note {
+    margin: 6px 0;
+    font-size: 12px;
+    font-style: italic;
+}
+
+.glyphicon {
+    padding-left: 0px;
+    padding-right: 3px;
+}
+
+.loading {
+    color: #eee;
+}
+
+table.products td {
+    vertical-align: middle !important;
+}
+
+.product-id {
+    text-align: right;
+}
