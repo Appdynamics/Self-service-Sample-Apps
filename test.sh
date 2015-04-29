@@ -337,7 +337,7 @@ verifyPostgreSQL() {
       local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-osx-binaries.zip"
       curl -L -o "$RUN_PATH/postgresql.zip" "$DOWNLOAD_URL"
       echo "Unpacking PostgreSQL..."
-      unzip -d "$RUN_PATH/" "$RUN_PATH/postgresql.zip"
+      unzip -d "$RUN_PATH/" "$RUN_PATH/postgresql.zip" >/dev/null
       rm "$RUN_PATH/postgresql.zip"
     else
       echo "Invalid platform setting. Exiting."
