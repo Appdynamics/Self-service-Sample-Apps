@@ -266,8 +266,8 @@ installNodeDependency() {
   local DEPENDENCY_NAME="$1"; local DEPENDENCY_INSTALL="$2"; local DEPENDENCY_VERSION="$3"
 
   echo "Installing (Node) $DEPENDENCY_NAME..."
-  if ! npm list -g "$DEPENDENCY_INSTALL" >/dev/null ; then
-    npm install -g "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
+  if ! "$NVM_DIR/v$NODE_VERSION/bin/npm" list "$DEPENDENCY_INSTALL" >/dev/null ; then
+    "$NVM_DIR/v$NODE_VERSION/bin/npm" install "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
   else echo "Already installed."; fi
 }
 

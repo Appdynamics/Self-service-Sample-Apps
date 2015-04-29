@@ -270,9 +270,7 @@ installNodeDependency() {
   local DEPENDENCY_NAME="$1"; local DEPENDENCY_INSTALL="$2"; local DEPENDENCY_VERSION="$3"
 
   echo "Installing $DEPENDENCY_NAME for Node.js..."
-  if ! npm list -g "$DEPENDENCY_INSTALL" >/dev/null ; then
-    npm install -g "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
-  else echo "Already installed."; fi
+  npm install -g "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
 }
 
 installNode() {
@@ -430,7 +428,6 @@ require(\"appdynamics\").profile({
   ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"
   ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/jquery/dist/" "$SCRIPT_DIR/src/public/jquery"
   if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
-  export NODE_PATH="$NVM_DIR/v$NODE_VERSION/lib/node_modules"
   startProcess "node" "Node server (port $NODE_PORT)" "$NVM_DIR/v$NODE_VERSION/bin/node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
 }
 
