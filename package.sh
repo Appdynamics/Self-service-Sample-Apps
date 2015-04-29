@@ -21,9 +21,11 @@ mvn package
 cd "$SCRIPT_DIR"
 
 # We do not need to package java dependencies as they will be downloaded by the install script
-rm -rf "$SCRIPT_DIR/sampleapp/repo/javax"
-rm -rf "$SCRIPT_DIR/sampleapp/repo/mysql"
-rm -rf "$SCRIPT_DIR/sampleapp/repo/org"
+mv "$SCRIPT_DIR/sampleapp/repo/com/appdynamics" "$SCRIPT_DIR/sampleapp-appdynamics"
+rm -rf "$SCRIPT_DIR/sampleapp/repo"
+mkdir "$SCRIPT_DIR/sampleapp/repo"
+mkdir "$SCRIPT_DIR/sampleapp/repo/com"
+mv "$SCRIPT_DIR/sampleapp-appdynamics" "$SCRIPT_DIR/sampleapp/repo/com/appdynamics"
 
 find "$SCRIPT_DIR/src/public" -type l | xargs rm -rf
 
