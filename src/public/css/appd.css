@@ -1,3 +1,11 @@
+body {
+    padding-top: 70px;
+}
+
+footer {
+    margin: 50px 0;
+}
+
 .center {
     display: block;
     margin: 0 auto;
@@ -40,4 +48,9 @@ table.products td {
 
 .product-id {
     text-align: right;
+    padding-right: 10px;
+}
+
+.copyright, .copyright a {
+    color: #777;
 }

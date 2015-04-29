@@ -1,18 +1,49 @@
-AppDynamics Demo Application Environment Setup
+AppDynamics Sample Application Installer
 
-This script will install a sample application to show AppDynamics in action.
-The following will be installed and configured:
-  - Apache Tomcat Standalone Instance
-  - AppDynamics App Agent for Java
-  - AppDynamics Database Agent
-  - AppDynamics Machine Agent
-  - PostgreSQL (If desired)
+Copyright (c) 2015 AppDynamics, Inc.
+Licensed under the Apache License, Version 2.0.
+http://www.apache.org/licenses/LICENSE-2.0.html
 
-The following will be installed and configured on Linux and Mac only:
-  - AppDynamics Node Agent
-  - Node.js (with nvm, npm, Express, Request, jQuery, Bootstrap, and Angular)
 
-The INSTALL scripts have been pre-configured for your AppDynamics controller.
+About This Package
 
-For advanced usage options, run the INSTALL script with the -h flag.
+    This package allows you to install and configure a sample application
+    to experience AppDynamics in action.  This installation will include:
 
+    - Apache Tomcat Standalone Instance
+    - AppDynamics App Agent for Java
+    - AppDynamics Database Agent
+    - AppDynamics Machine Agent
+    - AppDynamics Node Agent (Linux and Mac only)
+    - Node.js (with nvm, npm, Express, and Request)
+    - PostgreSQL (if desired)
+
+    This sample app will be pre-configured to send activity data to your 
+    AppDynamics Controller.  Follow the instructions below to begin.
+
+
+Installation Instructions
+
+    Linux:
+
+        1. Open a command-line shell.
+        2. cd to this directory.
+        3. Run this command:  sh INSTALL_Linux.sh
+
+    Mac OS X:
+
+        1. Open the Terminal application.
+        2. cd to this directory.
+        3. Run this command:  sh INSTALL_Mac.sh
+
+    Windows:
+
+        Double-click the INSTALL_Windows.bat file to run.
+
+    After starting the installer, follow the prompts until installation 
+    completes and the sample app opens in your web browser.
+
+
+More Information
+
+    To learn more about AppDynamics, visit http://www.appdynamics.com.

@@ -425,10 +425,6 @@ require(\"appdynamics\").profile({
 });
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$CONTROLLER_SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
   cat "$SCRIPT_DIR/src/server.js" >> "$RUN_PATH/node/server.js"
-  echo "ln -sf \"$NVM_DIR/v$NODE_VERSION/lib/node_modules/angular/\" \"$SCRIPT_DIR/src/public/angular\""
-  ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/angular/" "$SCRIPT_DIR/src/public/angular"
-  ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/bootstrap/dist/" "$SCRIPT_DIR/src/public/bootstrap"
-  ln -sf "$NVM_DIR/v$NODE_VERSION/lib/node_modules/jquery/dist/" "$SCRIPT_DIR/src/public/jquery"
   if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
   startProcess "node" "Node server (port $NODE_PORT)" "$NVM_DIR/v$NODE_VERSION/bin/node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
 }
