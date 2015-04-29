@@ -464,7 +464,7 @@ startNode
 generateInitialLoad
 
 echo ""
-echo "Success! The AppDynamics sample app environment has been started."
+echo "Success! The AppDynamics sample application is ready."
 
 SAMPLE_APP_URL="http://localhost:$NODE_PORT"
 if [ $PLATFORM == "Linux" ]; then
