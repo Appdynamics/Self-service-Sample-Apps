@@ -32,7 +32,7 @@ app.controller 'AdminController', [
   ($scope, $http, $rootScope, $timeout) ->
     $scope.products = []
     $scope.ready = false
-    $scope.activeTab = 0
+    $scope.activeTabIndex = 0
 
     setupProductUpdate = (product) ->
       product.loading = false
@@ -76,7 +76,7 @@ app.controller 'AdminController', [
           if not data.hasOwnProperty product then continue
           setupProductUpdate data[product]
         $scope.ready = true
-        $scope.activeTab = 1
+        $scope.activateTab 1
         null
 
     $scope.looping = false
@@ -111,7 +111,7 @@ app.controller 'AdminController', [
       performLoopGet()
 
     $scope.slowRequest = false
-    $scope.delay = 10
+    $scope.delay = 5
     $scope.slowRequestGet = ->
       $scope.slowRequest = true
       $http.get '/slowrequest',
@@ -193,11 +193,14 @@ app.controller 'AdminController', [
         alert 'Unable to raise exception.'
         $scope.raisingSql = false
 
-    $scope.isTabActive = (tab) ->
-      parseInt($scope.activeTab, 10) == parseInt(tab, 10)
+    $scope.isTabActive = (tabIndex) ->
+      $scope.activeTabIndex == tabIndex.toString()
 
-    $scope.activateTab = (tab) ->
-      $scope.activeTab = tab
+    $scope.tabActive = (tabIndex) ->
+      if $scope.isTabActive(tabIndex) then 'active' else ''
+
+    $scope.activateTab = (tabIndex) ->
+      $scope.activeTabIndex = tabIndex.toString()
 
     null
 ]
