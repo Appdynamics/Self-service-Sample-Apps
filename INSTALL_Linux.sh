@@ -73,9 +73,6 @@ usage() {
 removeEnvironment() {
   echo "Removing Sample Application environment..."
   rm -rf "$NVM_DIR"
-  rm -rf "$RUN_PATH/src/public/angular"
-  rm -rf "$RUN_PATH/src/public/bootstrap"
-  rm -rf "$RUN_PATH/src/public/jquery"
   rm -rf "$RUN_PATH/node"
   rm -rf "$RUN_PATH/AppServerAgent"
   rm -rf "$RUN_PATH/DatabaseAgent"
@@ -288,9 +285,6 @@ installNode() {
 
   installNodeDependency "Express" "express" "4.12.3"
   installNodeDependency "Request" "request" "2.55.0"
-  installNodeDependency "jQuery" "jquery" "2.1.3"
-  installNodeDependency "Bootstrap" "bootstrap" "3.3.4"
-  installNodeDependency "AngularJS" "angular" "1.3.14"
   installNodeDependency "AppDynamics Agent" "appdynamics" "$NODE_AGENT_VERSION"
 }
 
@@ -464,15 +458,17 @@ startNode
 generateInitialLoad
 
 echo ""
-echo "Success! The AppDynamics sample application is ready."
+echo "Success!  The AppDynamics sample application is ready."
 
 SAMPLE_APP_URL="http://localhost:$NODE_PORT"
 if [ $PLATFORM == "Linux" ]; then
+  echo "Opening web browser to:  $SAMPLE_APP_URL"
   xdg-open $SAMPLE_APP_URL
 elif [ $PLATFORM == "Mac" ]; then
+  echo "Opening web browser to:  $SAMPLE_APP_URL"
   open $SAMPLE_APP_URL
 else
-  echo "To continue, please navigate your web browser to:  http://localhost:$NODE_PORT"
+  echo "To continue, please navigate your web browser to:  $SAMPLE_APP_URL"
 fi
 
 echo ""
