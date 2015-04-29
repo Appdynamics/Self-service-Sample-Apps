@@ -294,19 +294,20 @@ installNode() {
 }
 
 getDatabaseChoice() {
-  local RESPONSE=
-  while true; do
-    echo "Choose database to use with this sample app:"
-    echo "  1. Install PostgreSQL."
-    echo "  2. Use existing MySQL instance."
-    echo "  3. Quit this installer."
-    read -p "Enter your choice: " RESPONSE
-    case "$RESPONSE" in
-      [1]* ) DB_CHOICE="postgres"; break;;
-      [2]* ) DB_CHOICE="mysql"; break;;
-      [3]* ) echo "Exiting."; exit;;
-    esac
-  done
+  # local RESPONSE=
+  # while true; do
+  #   echo "Choose database to use with this sample app:"
+  #   echo "  1. Use an existing PostgreSQL server instance."
+  #   echo "  2. Download and install separate PostgreSQL server instance."
+  #   echo "  3. Quit this installer."
+  #   read -p "Enter your choice: " RESPONSE
+  #   case "$RESPONSE" in
+  #     [1]* ) DB_CHOICE="existing"; break;;
+  #     [2]* ) DB_CHOICE="install"; break;;
+  #     [3]* ) echo "Exiting."; exit;;
+  #   esac
+  # done
+  DB_CHOICE="install"
 }
 
 verifyMySQL() {
@@ -320,14 +321,6 @@ verifyMySQL() {
     DB_PORT=3306
   fi
   echo " done."
-}
-
-newVerifyPostgreSQL() {
-  echo "Checking PostgreSQL..."
-  POSTGRES_DIR="$RUN_PATH/pgsql"
-  # if ! which psql >/dev/null ; then; fi
-
-  # if [ ! -f "$POSTGRES_DIR/bin/psql" ]; then; fi
 }
 
 verifyPostgreSQL() {
@@ -427,12 +420,11 @@ require(\"appdynamics\").profile({
   startProcess "node" "Node server (port $NODE_PORT)" "$NVM_DIR/v$NODE_VERSION/bin/node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
 }
 
-performInitialLoad() {
-  echo "Performing Initial Load..."
+generateInitialLoad() {
   local LOAD_HITS=10
   for LOOPS in $(seq 1 "$LOAD_HITS")
   do
-    echo "Performing Load Hit $LOOPS of $LOAD_HITS"
+    echo "Generating app load: request $LOOPS of $LOAD_HITS"
     curl "http://localhost:$NODE_PORT/retrieve?id=1" 2>/dev/null >/dev/null
     sleep 1
   done
@@ -457,10 +449,7 @@ startup
 installDependencies
 verifyJava
 getDatabaseChoice
-if [ "$DB_CHOICE" = "mysql" ]; then
-  verifyMySQL
-  createMySQLDatabase
-else
+if [ "$DB_CHOICE" = "install" ]; then
   verifyPostgreSQL
   createPostgreSQLDatabase
 fi
@@ -471,7 +460,7 @@ startMachineAgent
 startDatabaseAgent
 startTomcat
 startNode
-performInitialLoad
+generateInitialLoad
 
 echo ""
 echo "Success! The AppDynamics sample app environment has been started."
