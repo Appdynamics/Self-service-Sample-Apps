@@ -59,7 +59,8 @@ The following packages will be installed and configured:
   - AppDynamics Database Agent
   - AppDynamics Machine Agent
   - AppDynamics Node Agent
-  - Node.js (with nvm, npm, Express, Request, jQuery, Bootstrap, and Angular)
+  - Node.js (with nvm, npm, Express, and Request)
+  - PostgreSQL
 
 Note: Your system must already have the following commands: curl, unzip
 "
@@ -427,7 +428,7 @@ generateInitialLoad() {
   local LOAD_HITS=10
   for LOOPS in $(seq 1 "$LOAD_HITS")
   do
-    echo "Generating app load: request $LOOPS of $LOAD_HITS"
+    echo "Generating app load: request $LOOPS of $LOAD_HITS..."
     curl "http://localhost:$NODE_PORT/retrieve?id=1" 2>/dev/null >/dev/null
     sleep 1
   done

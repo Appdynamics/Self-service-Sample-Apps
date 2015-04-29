@@ -16,7 +16,7 @@ About This Package
     - AppDynamics Machine Agent
     - AppDynamics Node Agent (Linux and Mac only)
     - Node.js (with nvm, npm, Express, and Request)
-    - PostgreSQL (if desired)
+    - PostgreSQL
 
     This sample app will be pre-configured to send activity data to your 
     AppDynamics Controller.  Follow the instructions below to begin.
