@@ -36,7 +36,7 @@ if [ "${NODE_AGENT_VERSION%?.*.*.*}" != $NODE_AGENT_VERSION ]; then
   NODE_AGENT_VERSION="${NODE_AGENT_VERSION%.*}"
 fi
 
-RUN_PATH="$SCRIPT_DIR"
+RUN_PATH="$SCRIPT_DIR/build"
 mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
 NOW=$(date +"%s")
 RUN_LOG="$RUN_PATH/log/$NOW"
@@ -357,7 +357,7 @@ verifyPostgreSQL() {
 createPostgreSQLDatabase() {
   "$POSTGRES_DIR/bin/createdb" -p "$DB_PORT" $DB_NAME  2>/dev/null
   "$POSTGRES_DIR/bin/createuser" -p "$DB_PORT" -s demouser  2>/dev/null
-  "$POSTGRES_DIR/bin/psql" -U demouser -p "$DB_PORT" -d $DB_NAME -f "$RUN_PATH/src/sql/postgresql.sql" 2>/dev/null
+  "$POSTGRES_DIR/bin/psql" -U demouser -p "$DB_PORT" -d $DB_NAME -f "$SCRIPT_DIR/src/sql/postgresql.sql" 2>/dev/null
   echo "postgresql" > "$APPD_DB_PORT_FILE"
   echo "$DB_PORT" >> "$APPD_DB_PORT_FILE"
 }
@@ -436,6 +436,7 @@ onExitCleanup() {
     rm -rf "$APPD_TOMCAT_FILE"
     rm -rf "$APPD_DB_PORT_FILE"
   fi
+  cd "$SCRIPT_DIR"
   kill 0
 }
 trap "exit" INT TERM && trap onExitCleanup EXIT
