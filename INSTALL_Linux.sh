@@ -18,7 +18,8 @@ SCRIPT_DIR="$(readlink -f "$0" | xargs dirname)"
 
 JAVA_PORT=8887
 NODE_PORT=8888
-DB_NAME=AppDemo
+DB_NAME="appd_sample_db"
+DB_USER="appd_sample_user"
 DB_PORT=
 POSTGRES_DIR=
 NODE_VERSION="0.10.33"
@@ -44,7 +45,7 @@ mkdir -p "$RUN_LOG"
 export NVM_DIR="$RUN_PATH/.nvm"
 mkdir -p "$NVM_DIR"
 
-export APPD_DB_PORT_FILE="$RUN_PATH/db.port"
+export APPD_DB_FILE="$RUN_PATH/db"
 export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 
 about() {
@@ -72,20 +73,12 @@ usage() {
 
 removeEnvironment() {
   echo "Removing Sample Application environment..."
-  rm -rf "$NVM_DIR"
-  rm -rf "$RUN_PATH/node"
-  rm -rf "$RUN_PATH/AppServerAgent"
-  rm -rf "$RUN_PATH/DatabaseAgent"
-  rm -rf "$RUN_PATH/MachineAgent"
-  rm -rf "$RUN_PATH/tomcatrest"
-  rm -rf "$RUN_PATH/log"
-  rm -rf "$RUN_PATH/node_modules"
-  rm -rf "$RUN_PATH/pgsql"
+  rm -rf "$RUN_PATH"
   echo "Done"
   exit 0
 }
 
-while getopts :c:p:u:k:s:n:a:m:hdyzt: OPT; do
+while getopts :c:p:u:k:s:n:j:m:hydzt: OPT; do
   case "$OPT" in
     c) CONTROLLER_ADDRESS=$OPTARG;;
     p) CONTROLLER_PORT=$OPTARG;;
@@ -234,19 +227,11 @@ installTomcat() {
   performTomcatDependencyDownload "org/glassfish/jersey/core/jersey-client/2.10.1/jersey-client-2.10.1.jar"
   performTomcatDependencyDownload "javax/validation/validation-api/1.1.0.Final/validation-api-1.1.0.Final.jar"
   performTomcatDependencyDownload "javax/ws/rs/javax.ws.rs-api/2.0/javax.ws.rs-api-2.0.jar"
-  performTomcatDependencyDownload "mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar"
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-logging-juli/7.0.57/tomcat-embed-logging-juli-7.0.57.jar"
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-jasper/7.0.57/tomcat-embed-jasper-7.0.57.jar"
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar"
-  performTomcatDependencyDownload "org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar"
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar"
   performTomcatDependencyDownload "org/postgresql/postgresql/9.4-1200-jdbc41/postgresql-9.4-1200-jdbc41.jar"
-  performTomcatDependencyDownload "com/github/dblock/waffle/waffle-jna/1.7/waffle-jna-1.7.jar"
-  performTomcatDependencyDownload "net/java/dev/jna/jna/4.1.0/jna-4.1.0.jar"
-  performTomcatDependencyDownload "net/java/dev/jna/jna-platform/4.1.0/jna-platform-4.1.0.jar"
-  performTomcatDependencyDownload "org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar"
-  performTomcatDependencyDownload "com/google/guava/guava/18.0/guava-18.0.jar"
-  performTomcatDependencyDownload "org/slf4j/slf4j-simple/1.7.7/slf4j-simple-1.7.7.jar"
 }
 
 startTomcat() {
@@ -255,7 +240,7 @@ startTomcat() {
     writeControllerInfo "$dir/conf/controller-info.xml" "JavaServer" "JavaServer01"
   done
   export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
-  startProcess "Tomcat" "Tomcat Server (Port $JAVA_PORT)" "sh $RUN_PATH/tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "ERROR:"
+  startProcess "Tomcat" "Tomcat Server (Port $JAVA_PORT)" "sh tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "SEVERE: Failed to initialize"
 }
 
 setupNodeNvm() {
@@ -288,42 +273,12 @@ installNode() {
   installNodeDependency "AppDynamics Agent" "appdynamics" "$NODE_AGENT_VERSION"
 }
 
-getDatabaseChoice() {
-  # local RESPONSE=
-  # while true; do
-  #   echo "Choose database to use with this sample app:"
-  #   echo "  1. Use an existing PostgreSQL server instance."
-  #   echo "  2. Download and install separate PostgreSQL server instance."
-  #   echo "  3. Quit this installer."
-  #   read -p "Enter your choice: " RESPONSE
-  #   case "$RESPONSE" in
-  #     [1]* ) DB_CHOICE="existing"; break;;
-  #     [2]* ) DB_CHOICE="install"; break;;
-  #     [3]* ) echo "Exiting."; exit;;
-  #   esac
-  # done
-  DB_CHOICE="install"
-}
-
-verifyMySQL() {
-  printf "Checking MySQL..."
-  if ! which mysql >/dev/null ; then
-    echo ""
-    echo "Cannot find mysql. Please make sure it is installed and in your PATH. Exiting."
-    exit 1
-  fi
-  if [ "$DB_PORT" == "" ]; then
-    DB_PORT=3306
-  fi
-  echo " done."
-}
-
 verifyPostgreSQL() {
   echo "Checking PostgreSQL..."
   POSTGRES_DIR="$RUN_PATH/pgsql"
   if [ ! -f "$POSTGRES_DIR/bin/psql" ]; then
     echo "Downloading PostgreSQL..."
-    if [ $PLATFORM == "Linux" ]; then
+    if [ "$PLATFORM" = Linux ]; then
       local VERSION=
       if [ "$ARCH" = "x86_64" ]; then VERSION="x64-"; fi
       local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-linux-${VERSION}binaries.tar.gz"
@@ -331,7 +286,7 @@ verifyPostgreSQL() {
       echo "Unpacking PostgreSQL..."
       gunzip -c "$RUN_PATH/postgresql.tar.gz" | tar xopf -
       rm "$RUN_PATH/postgresql.tar.gz"
-    elif [ $PLATFORM == "Mac" ]; then
+    elif [ "$PLATFORM" = "Mac" ]; then
       local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-osx-binaries.zip"
       curl -L -o "$RUN_PATH/postgresql.zip" "$DOWNLOAD_URL"
       echo "Unpacking PostgreSQL..."
@@ -344,8 +299,8 @@ verifyPostgreSQL() {
   fi
 
   # Start PostgreSQL
-  if [ "$DB_PORT" == "" ]; then
-    DB_PORT=5439
+  if [ "$DB_PORT" = "" ]; then
+    DB_PORT="5439"
   fi
   "$POSTGRES_DIR/bin/initdb" -D "$POSTGRES_DIR/data"
   if ! "$POSTGRES_DIR/bin/pg_ctl" -D "$POSTGRES_DIR/data" start -l "$RUN_LOG/psql" -w -o "-p $DB_PORT" ; then
@@ -354,12 +309,19 @@ verifyPostgreSQL() {
   fi
 }
 
+writeDbFile() {
+  local DATABASE="$1"
+  echo "$DATABASE" > "$APPD_DB_FILE"
+  echo "$DB_PORT" >> "$APPD_DB_FILE"
+  echo "$DB_NAME" >> "$APPD_DB_FILE"
+  echo "$DB_USER" >> "$APPD_DB_FILE"
+}
+
 createPostgreSQLDatabase() {
-  "$POSTGRES_DIR/bin/createdb" -p "$DB_PORT" $DB_NAME  2>/dev/null
-  "$POSTGRES_DIR/bin/createuser" -p "$DB_PORT" -s demouser  2>/dev/null
-  "$POSTGRES_DIR/bin/psql" -U demouser -p "$DB_PORT" -d $DB_NAME -f "$SCRIPT_DIR/src/sql/postgresql.sql" 2>/dev/null
-  echo "postgresql" > "$APPD_DB_PORT_FILE"
-  echo "$DB_PORT" >> "$APPD_DB_PORT_FILE"
+  "$POSTGRES_DIR/bin/createdb" -p "$DB_PORT" "$DB_NAME"  2>/dev/null
+  "$POSTGRES_DIR/bin/createuser" -p "$DB_PORT" -s "$DB_USER" 2>/dev/null
+  "$POSTGRES_DIR/bin/psql" -U "$DB_USER" -p "$DB_PORT" -d "$DB_NAME" -f "$SCRIPT_DIR/src/sql/postgresql.sql" 2>/dev/null
+  writeDbFile "postgresql"
 }
 
 verifyJava() {
@@ -372,28 +334,14 @@ verifyJava() {
   echo " done."
 }
 
-createMySQLDatabase() {
-  echo ""
-  echo "Please enter your MySQL root password to install the sample app database."
-  mysql -u root -p < "$SCRIPT_DIR/src/sql/mysql.sql"
-  if [ $? -ne 0 ]; then
-    verifyUserAgreement "The mysql script install/check failed. Do you wish to try again?" true
-    createMySQLDatabase
-  fi
-  echo "mysql" > "$APPD_DB_PORT_FILE"
-  echo "$DB_PORT" >> "$APPD_DB_PORT_FILE"
-  echo ""
-  return 0
-}
-
 startMachineAgent() {
   writeControllerInfo "$RUN_PATH/MachineAgent/conf/controller-info.xml"
-  startProcess "machine-agent" "AppDynamics Machine Agent" "java -jar $RUN_PATH/MachineAgent/machineagent.jar" "NOWAIT"
+  startProcess "machine-agent" "AppDynamics Machine Agent" "java -jar MachineAgent/machineagent.jar" "NOWAIT"
 }
 
 startDatabaseAgent() {
   writeControllerInfo "$RUN_PATH/DatabaseAgent/conf/controller-info.xml"
-  startProcess "database-agent" "AppDynamics Database Agent" "java -jar $RUN_PATH/DatabaseAgent/db-agent.jar" "NOWAIT"
+  startProcess "database-agent" "AppDynamics Database Agent" "java -jar DatabaseAgent/db-agent.jar" "NOWAIT"
 }
 
 startNode() {
@@ -412,7 +360,7 @@ require(\"appdynamics\").profile({
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$CONTROLLER_SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
   cat "$SCRIPT_DIR/src/server.js" >> "$RUN_PATH/node/server.js"
   if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
-  startProcess "node" "Node server (port $NODE_PORT)" "$NVM_DIR/v$NODE_VERSION/bin/node $RUN_PATH/node/server.js" "Node Server Started" "\"Error\":"
+  startProcess "node" "Node server (port $NODE_PORT)" ".nvm/v$NODE_VERSION/bin/node $RUN_PATH/node/server.js" "Node Server Started" "Error:"
 }
 
 generateInitialLoad() {
@@ -434,7 +382,7 @@ onExitCleanup() {
     rm -rf "$RUN_PATH/cookies"
     rm -rf "$RUN_PATH/status-"*
     rm -rf "$APPD_TOMCAT_FILE"
-    rm -rf "$APPD_DB_PORT_FILE"
+    rm -rf "$APPD_DB_FILE"
   fi
   cd "$SCRIPT_DIR"
   kill 0
@@ -444,11 +392,8 @@ trap "exit" INT TERM && trap onExitCleanup EXIT
 startup
 installDependencies
 verifyJava
-getDatabaseChoice
-if [ "$DB_CHOICE" = "install" ]; then
-  verifyPostgreSQL
-  createPostgreSQLDatabase
-fi
+verifyPostgreSQL
+createPostgreSQLDatabase
 installTomcat
 installNode
 installAgents
@@ -462,12 +407,12 @@ echo ""
 echo "Success!  The AppDynamics sample application is ready."
 
 SAMPLE_APP_URL="http://localhost:$NODE_PORT"
-if [ $PLATFORM == "Linux" ]; then
+if [ "$PLATFORM" = "Linux" ]; then
   echo "Opening web browser to:  $SAMPLE_APP_URL"
-  xdg-open $SAMPLE_APP_URL
-elif [ $PLATFORM == "Mac" ]; then
+  xdg-open "$SAMPLE_APP_URL"
+elif [ "$PLATFORM" = "Mac" ]; then
   echo "Opening web browser to:  $SAMPLE_APP_URL"
-  open $SAMPLE_APP_URL
+  open "$SAMPLE_APP_URL"
 else
   echo "To continue, please navigate your web browser to:  $SAMPLE_APP_URL"
 fi

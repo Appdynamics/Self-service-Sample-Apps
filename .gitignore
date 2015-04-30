@@ -3,13 +3,14 @@ src/public/bootstrap*
 src/public/jquery*
 src/public/angular*
 maven/target*
+build
 sampleapp/repo/javax*
 sampleapp/repo/com/g*
 sampleapp/repo/mysql*
 sampleapp/repo/org*
 sampleapp/repo/net*
 agents/*
-db.port
+db
 npm-debug.log
 .nvm
 AppServerAgent

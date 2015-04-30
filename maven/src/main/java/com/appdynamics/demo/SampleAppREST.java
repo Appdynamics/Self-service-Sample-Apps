@@ -15,15 +15,21 @@ import javax.ws.rs.core.MediaType;
 
 @Path("/appdserver")
 public class SampleAppREST {
-  final String db_port_file = System.getenv().get("APPD_DB_PORT_FILE");
+  final String db_file = System.getenv().get("APPD_DB_FILE");
 
   private Connection getConnection() throws Exception {
     String db = "mysql";
     String port = "3306";
+    String database = "";
+    String user = "";
+    String password = "";
     try {
-      BufferedReader bufferedReader = new BufferedReader(new FileReader(db_port_file));
+      BufferedReader bufferedReader = new BufferedReader(new FileReader(db_file));
       db = bufferedReader.readLine().trim();
       port = bufferedReader.readLine().trim();
+      database = bufferedReader.readLine().trim();
+      user = bufferedReader.readLine().trim();
+      password = bufferedReader.readLine().trim();
       bufferedReader.close();
     } catch (Exception exception) {}
 
@@ -33,9 +39,8 @@ public class SampleAppREST {
       Class.forName("org.postgresql.Driver").newInstance();
     }
     return DriverManager
-      .getConnection("jdbc:" + db + "://localhost:" + port + "/AppDemo",
-        "demouser",
-        "demouser"
+      .getConnection("jdbc:" + db + "://localhost:" + port + "/" + database,
+        user, password
       );
   }
 
