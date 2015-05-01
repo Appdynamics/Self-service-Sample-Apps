@@ -339,13 +339,13 @@ GOTO :EOF
   CALL :startPostgreSQL
   CALL :createPostgreSQLDatabase
   CALL :installTomcat
-  REM CALL :installNode
+  CALL :installNode
   CALL :installAgents
   CALL :startMachineAgent
   CALL :startDatabaseAgent
   CALL :startTomcat
   CALL :startNode
-  REM CALL :performInitialLoad
+  CALL :performInitialLoad
 
   echo.
   echo The AppDynamics Sample App Environment has been started.
