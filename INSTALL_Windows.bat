@@ -187,9 +187,9 @@ GOTO :EOF
 GOTO :EOF
 
 :createPostgreSQLDatabase
-  "%RUN_PATH%\pgsql\bin\createdb.exe" -p "%DB_PORT%" "%DN_NAME%"  2>NUL
-  "%RUN_PATH%\pgsql\bin\createuser.exe" -p "%DB_PORT%" -s "%DB_USER%"  2>NUL
-  "%RUN_PATH%\pgsql\bin\psql.exe" -U "%DB_USER%" -p "%DB_PORT%" -d "%DB_NAME%" -f "%RUN_PATH%\src\sql\postgresql.sql" 2>NUL
+  "%RUN_PATH%\pgsql\bin\createdb.exe" -p "%DB_PORT%" "%DB_NAME%" 2>NUL
+  "%RUN_PATH%\pgsql\bin\createuser.exe" -p "%DB_PORT%" -s "%DB_USER%" 2>NUL
+  "%RUN_PATH%\pgsql\bin\psql.exe" -U "%DB_USER%" -p "%DB_PORT%" -d "%DB_NAME%" -f "%SCRIPT_DIR%\src\sql\postgresql.sql" 2>NUL
   echo postgresql > "%APPD_DB_FILE%"
   echo %DB_PORT% >> "%APPD_DB_FILE%"
   echo %DB_NAME% >> "%APPD_DB_FILE%"
@@ -339,13 +339,13 @@ GOTO :EOF
   CALL :startPostgreSQL
   CALL :createPostgreSQLDatabase
   CALL :installTomcat
-  CALL :installNode
+  REM CALL :installNode
   CALL :installAgents
   CALL :startMachineAgent
   CALL :startDatabaseAgent
   CALL :startTomcat
   CALL :startNode
-  CALL :performInitialLoad
+  REM CALL :performInitialLoad
 
   echo.
   echo The AppDynamics Sample App Environment has been started.
