@@ -14,7 +14,10 @@ SET CONTROLLER_SSL=config-controller-ssl-enabled
 SET APPLICATION_NAME=AppDynamics Sample App (Windows)
 SET JAVA_PORT=8887
 SET NODE_PORT=8888
-SET DB_PORT=3306
+SET DB_PORT=8889
+SET DB_NAME=appd_sample_db
+SET DB_USER=appd_sample_user
+SET POSTGRES_DIR=
 SET NODE_VERSION=0.10.33
 SET NOPROMPT=false
 SET PROMPT_EACH_REQUEST=false
@@ -22,13 +25,13 @@ SET PROMPT_EACH_REQUEST=false
 SET SCRIPT_NAME=AppDemo.bat
 SET SCRIPT_DIR=%~dp0
 SET SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
-SET RUN_PATH=%SCRIPT_DIR%
+SET RUN_PATH=%SCRIPT_DIR%\build
 SET NVM_DIR=%RUN_PATH%\.nvm
 SET NVM_HOME=%NVM_DIR%
 SET NODE_DIR=%NVM_HOME%\v%NODE_VERSION%
 SET NODE_PATH=%NODE_DIR%\node_modules
 
-SET APPD_DB_PORT_FILE=%RUN_PATH%\db.port
+SET APPD_DB_FILE=%RUN_PATH%\db
 SET APPD_TOMCAT_FILE=%RUN_PATH%\tomcat
 
 reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && set OSBIT=32 || set OSBIT=64
@@ -37,8 +40,8 @@ mkdir "%RUN_PATH%" 2>NUL
 
 SET ucurl="%RUN_PATH%\utils\curl.exe"
 
-if %OSBIT%==64 SET node="%NODE_DIR%\node64.exe"
-else SET node="%NODE_DIR%\node.exe"
+SET node="%NODE_DIR%\node.exe"
+if [%OSBIT%]==[64] SET node="%NODE_DIR%\node64.exe"
 SET npm=%node% "%NODE_PATH%\npm\bin\npm-cli.js"
 
 if (%1)==() GOTO :startup
@@ -122,18 +125,7 @@ GOTO :EOF
 
 :removeEnvironment
   echo Removing Sample Application Environment...
-  rmdir /S /Q "%NVM_DIR%" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/src/public/angular" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/src/public/bootstrap" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/src/public/jquery" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/node" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/AppServerAgent" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/DatabaseAgent" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/MachineAgent" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/tomcatrest" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/node_modules" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/pgsql" 2>NUL
-  rmdir /S /Q "%RUN_PATH%/utils" 2>NUL
+  rmdir /S /Q "%RUN_PATH%" 2>NUL
   echo Done
   Exit /B 0
 GOTO :EOF
@@ -151,6 +143,7 @@ GOTO :EOF
   CALL :verifyUserAgreement "curl needs to be downloaded, do you wish to continue?"
   SET VB_DOWNLOAD_URL="http://www.paehl.com/open_source/?download=curl_742_0_ssl.zip"
   SET VB_ZIP_LOCATION=%RUN_PATH%\curl.zip
+  echo Downloading curl...
   CALL cscript.exe "%SCRIPT_DIR%\vbs\download.vbs" >NUL
   CALL :performUnzip "%RUN_PATH%\curl.zip" "%RUN_PATH%\utils"
   DEL "%RUN_PATH%\curl.zip" >NUL
@@ -168,22 +161,6 @@ GOTO :EOF
   if /I [%response%] == [m] SET DB_CHOICE=mysql & GOTO :EOF
   if /I [%response%] == [n] echo Exiting & CALL :Exit
   GOTO :verifyDatabaseChoiceLoop
-GOTO :EOF
-
-:verifyMySQL
-  for %%X in (mysql.exe) do (SET APPD_MYSQL_EXEC=%%~$PATH:X)
-  if not defined APPD_MYSQL_EXEC echo MySQL is needed to continue.  Please ensure your PATH environment variable is properly configured to include where the mysql executable is located, exiting. & CALL :Exit
-GOTO :EOF
-
-:createMySQLDatabase
-  echo Please login to mysql with root to setup the database for the demo application...
-  %APPD_MYSQL_EXEC% -u root -p < "%SCRIPT_DIR%\src\mysql.sql"
-  if not %errorlevel% == 0 (
-    CALL :verifyUserAgreement "The mysql script install/check failed, do you wish to try again?" true
-    CALL :createMySQLDatabase
-  )
-  echo mysql > "%APPD_DB_PORT_FILE%"
-  echo %DB_PORT% >> "%APPD_DB_PORT_FILE%"
 GOTO :EOF
 
 :verifyPostgreSQL
@@ -210,11 +187,13 @@ GOTO :EOF
 GOTO :EOF
 
 :createPostgreSQLDatabase
-  "%RUN_PATH%\pgsql\bin\createdb.exe" -p "%DB_PORT%" AppDemo  2>NUL
-  "%RUN_PATH%\pgsql\bin\createuser.exe" -p "%DB_PORT%" -s demouser  2>NUL
-  "%RUN_PATH%\pgsql\bin\psql.exe" -U demouser -p "%DB_PORT%" -d AppDemo -f "%RUN_PATH%\src\sql\postgresql.sql" 2>NUL
-  echo postgresql > "%APPD_DB_PORT_FILE%"
-  echo %DB_PORT% >> "%APPD_DB_PORT_FILE%"
+  "%RUN_PATH%\pgsql\bin\createdb.exe" -p "%DB_PORT%" "%DN_NAME%"  2>NUL
+  "%RUN_PATH%\pgsql\bin\createuser.exe" -p "%DB_PORT%" -s "%DB_USER%"  2>NUL
+  "%RUN_PATH%\pgsql\bin\psql.exe" -U "%DB_USER%" -p "%DB_PORT%" -d "%DB_NAME%" -f "%RUN_PATH%\src\sql\postgresql.sql" 2>NUL
+  echo postgresql > "%APPD_DB_FILE%"
+  echo %DB_PORT% >> "%APPD_DB_FILE%"
+  echo %DB_NAME% >> "%APPD_DB_FILE%"
+  echo %DB_USER% >> "%APPD_DB_FILE%"
 GOTO :EOF
 
 :performTomcatDependencyDownload
@@ -247,11 +226,9 @@ GOTO :EOF
   CALL :performTomcatDependencyDownload org/glassfish/jersey/core/jersey-client/2.10.1/jersey-client-2.10.1.jar
   CALL :performTomcatDependencyDownload javax/validation/validation-api/1.1.0.Final/validation-api-1.1.0.Final.jar
   CALL :performTomcatDependencyDownload javax/ws/rs/javax.ws.rs-api/2.0/javax.ws.rs-api-2.0.jar
-  CALL :performTomcatDependencyDownload mysql/mysql-connector-java/5.1.6/mysql-connector-java-5.1.6.jar
   CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-logging-juli/7.0.57/tomcat-embed-logging-juli-7.0.57.jar
   CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-jasper/7.0.57/tomcat-embed-jasper-7.0.57.jar
   CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar
-  CALL :performTomcatDependencyDownload org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar
   CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar
   CALL :performTomcatDependencyDownload org/postgresql/postgresql/9.4-1200-jdbc41/postgresql-9.4-1200-jdbc41.jar
   CALL :performTomcatDependencyDownload com/github/dblock/waffle/waffle-jna/1.7/waffle-jna-1.7.jar
@@ -329,11 +306,13 @@ GOTO :EOF
 
 :startNode
   mkdir "%RUN_PATH%\node" 2>NUL
-  if not exist "%RUN_PATH%\node\server.js" mklink "%RUN_PATH%\node\server.js" "%SCRIPT_DIR%\src\server.js" >NUL
-  if not exist "%RUN_PATH%\node\public\angular" mklink /D "%SCRIPT_DIR%\src\public\angular" "%NODE_PATH%\angular" >NUL
-  if not exist "%RUN_PATH%\node\public\bootstrap" mklink /D "%SCRIPT_DIR%\src\public\bootstrap" "%NODE_PATH%\bootstrap\dist" >NUL
-  if not exist "%RUN_PATH%\node\public\jquery" mklink /D "%SCRIPT_DIR%\src\public\jquery" "%NODE_PATH%\jquery\dist" >NUL
-  if not exist "%RUN_PATH%\node\public" mklink /D "%RUN_PATH%\node\public" "%SCRIPT_DIR%\src\public" >NUL
+  echo var node = %NODE_PORT%; > "%RUN_PATH%\node\server.js"
+  echo var java = %JAVA_PORT%; >> "%RUN_PATH%\node\server.js"
+  type "%SCRIPT_DIR%\src\server.js" >> "%RUN_PATH%\node\server.js"
+  if not exist "%RUN_PATH%\node\public" xcopy /E /Y "%SCRIPT_DIR%\src\public" "%RUN_PATH%\node\public\*" >NUL
+  if not exist "%RUN_PATH%\node\public\angular" xcopy /E /Y "%NODE_PATH%\angular" "%RUN_PATH%\node\public\angular\*" >NUL
+  if not exist "%RUN_PATH%\node\public\bootstrap" xcopy /E /Y "%NODE_PATH%\bootstrap\dist" "%RUN_PATH%\node\public\bootstrap\*" >NUL
+  if not exist "%RUN_PATH%\node\public\jquery" xcopy /E /Y "%NODE_PATH%\jquery\dist" "%RUN_PATH%\node\public\jquery\*" >NUL
   echo Starting Node server (port %NODE_PORT%)...
   start "_AppDynamicsSampleApp_ Node" /MIN %node% "%RUN_PATH%\node\server.js"
 GOTO :EOF
@@ -356,15 +335,9 @@ GOTO :EOF
   )
   CALL :downloadCurl
   CALL :verifyJava
-  CALL :getDatabaseChoice
-  IF %DB_CHOICE% == mysql (
-    CALL :verifyMySQL
-    CALL :createMySQLDatabase
-  ) else (
-    CALL :verifyPostgreSQL
-    CALL :startPostgreSQL
-    CALL :createPostgreSQLDatabase
-  )
+  CALL :verifyPostgreSQL
+  CALL :startPostgreSQL
+  CALL :createPostgreSQLDatabase
   CALL :installTomcat
   CALL :installNode
   CALL :installAgents
@@ -378,7 +351,9 @@ GOTO :EOF
   echo The AppDynamics Sample App Environment has been started.
   echo Please wait a moment for the environment to initialize.
   echo.
-  echo Then go here to generate load:  http://localhost:%NODE_PORT%
+  SET SAMPLE_APP_URL=http://localhost:%NODE_PORT%
+  echo Opening: %SAMPLE_APP_URL%
+  start "" %SAMPLE_APP_URL%
   echo.
   echo Press any key to quit...
   Pause >NUL
@@ -392,7 +367,7 @@ GOTO :EOF
   DEL "%RUN_PATH%\cookies" 2>NUL
   DEL "%RUN_PATH%\varout" 2>NUL
   DEL "%APPD_TOMCAT_FILE%" 2>NUL
-  DEL "%APPD_DB_PORT_FILE%" 2>NUL
+  DEL "%APPD_DB_FILE%" 2>NUL
   taskkill /FI "WINDOWTITLE eq _AppDynamicsSampleApp_*" 1>NUL 2>&1
   ENDLOCAL
   call :CtrlC <"%temp%\ExitBatchYes.txt" 1>nul 2>&1

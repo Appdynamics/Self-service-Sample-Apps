@@ -2,8 +2,6 @@ var express = require('express');
 var server = express();
 var request = require('request');
 var domain = require('domain').create();
-var node = 8888;
-var java = 8887;
 
 function setupStoreFrontCall(method, nodePath, apiRequest) {
   server.get('/' + nodePath, function (serverRequest, response) {

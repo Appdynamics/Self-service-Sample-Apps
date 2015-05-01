@@ -20,7 +20,7 @@ JAVA_PORT=8887
 NODE_PORT=8888
 DB_NAME="appd_sample_db"
 DB_USER="appd_sample_user"
-DB_PORT=
+DB_PORT=8889
 POSTGRES_DIR=
 NODE_VERSION="0.10.33"
 NOPROMPT=false
@@ -232,6 +232,12 @@ installTomcat() {
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar"
   performTomcatDependencyDownload "org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar"
   performTomcatDependencyDownload "org/postgresql/postgresql/9.4-1200-jdbc41/postgresql-9.4-1200-jdbc41.jar"
+  performTomcatDependencyDownload "com/github/dblock/waffle/waffle-jna/1.7/waffle-jna-1.7.jar"
+  performTomcatDependencyDownload "net/java/dev/jna/jna/4.1.0/jna-4.1.0.jar"
+  performTomcatDependencyDownload "net/java/dev/jna/jna-platform/4.1.0/jna-platform-4.1.0.jar"
+  performTomcatDependencyDownload "org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar"
+  performTomcatDependencyDownload "com/google/guava/guava/18.0/guava-18.0.jar"
+  performTomcatDependencyDownload "org/slf4j/slf4j-simple/1.7.7/slf4j-simple-1.7.7.jar"
 }
 
 startTomcat() {
@@ -298,10 +304,6 @@ verifyPostgreSQL() {
     fi
   fi
 
-  # Start PostgreSQL
-  if [ "$DB_PORT" = "" ]; then
-    DB_PORT="5439"
-  fi
   "$POSTGRES_DIR/bin/initdb" -D "$POSTGRES_DIR/data"
   if ! "$POSTGRES_DIR/bin/pg_ctl" -D "$POSTGRES_DIR/data" start -l "$RUN_LOG/psql" -w -o "-p $DB_PORT" ; then
     echo "Error with the PostgreSQL Database. Exiting."
@@ -358,6 +360,8 @@ require(\"appdynamics\").profile({
     nodeName: \"NodeServer01\"
 });
   " "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$CONTROLLER_SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
+  echo "var node = $NODE_PORT;" >> "$RUN_PATH/node/server.js"
+  echo "var java = $JAVA_PORT;" >> "$RUN_PATH/node/server.js"
   cat "$SCRIPT_DIR/src/server.js" >> "$RUN_PATH/node/server.js"
   if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
   startProcess "node" "Node server (port $NODE_PORT)" ".nvm/v$NODE_VERSION/bin/node $RUN_PATH/node/server.js" "Node Server Started" "Error:"

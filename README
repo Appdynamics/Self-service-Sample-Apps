@@ -35,6 +35,10 @@ Installation Instructions
     Windows:
 
         Double-click the INSTALL_Windows.bat file to run.
+        Note: The Visual C++ Redistributable Packages for Visual Studio 2013:
+          http://www.microsoft.com/en-us/download/details.aspx?id=40784
+        is required in order to run all the components.  Please ensure that
+        it is installed before beginning.
 
     After starting the installer, follow the prompts until installation 
     completes and the sample app opens in your web browser.
