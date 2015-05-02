@@ -52,7 +52,7 @@
     </nav>
 
     <!-- Page Content -->
-    <div ng-controller="AdminController" class="container" ng-show="ready">
+    <div class="container" ng-show="ready">
         <ul class="nav nav-tabs">
             <li ng-class="tabClass(1)"><a href="#" ng-click="activateTab(1)">App Flowmap</a></li>
             <li ng-class="tabClass(2)"><a href="#" ng-click="activateTab(2)">Business Transactions</a></li>
@@ -84,7 +84,7 @@
 
                 <p style="display: none">
                     To generate more load, enter the number of requests:
-                    <input type="number" ng-model="recursive" />
+                    <input type="number" ng-model="recursive.request" />
                     <button type="button" class="btn btn-danger btn-sm" ng-click="loopingGet()" ng-disabled="looping">Run</button>
                     &nbsp; <strong>{{getActiveLoop()}}</strong>
                 </p>
@@ -149,10 +149,10 @@
                             Add New
                         </td>
                         <td>
-                            <input type="text" ng-model="newName" />
+                            <input type="text" ng-model="newProduct.newName" />
                         </td>
                         <td>
-                            <input type="number" ng-model="newStock" />
+                            <input type="number" ng-model="newProduct.newStock" />
                         </td>
                         <td>
                             <button type="button" class="btn btn-sm btn-primary" ng-click="addNew()" ng-disable="loadingNew"><span class="glyphicon glyphicon-plus"></span> Save New Product</button>
@@ -179,7 +179,7 @@
                          To simulate a slow response, enter a response delay time <strong>(at least 3 seconds)</strong> and then click Generate Slow Response.<br/>
                          <p>
                              Slow Response Time (sec):
-                            <input type="number" ng-model="delay" />
+                            <input type="number" ng-model="delay.request" />
                             <button type="button" class="btn btn-danger btn-sm" ng-click="slowRequestGet()" ng-disabled="slowRequest">Generate Slow Response</button>
                         </p>
                     </li>

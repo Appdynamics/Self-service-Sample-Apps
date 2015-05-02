@@ -6,8 +6,7 @@ ACCOUNT_ACCESS_KEY="config-account-access-key"
 CONTROLLER_ADDRESS="config-controller-host"
 CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
-# NODE_AGENT_VERSION="config-nodejs-agent-version"
-NODE_AGENT_VERSION="4.0.4"
+NODE_AGENT_VERSION="config-nodejs-agent-version"
 
 # Linux-specific config
 PLATFORM="Linux"
@@ -15,6 +14,11 @@ SCRIPT_DIR="$(readlink -f "$0" | xargs dirname)"
 
 
 ####  ALL FOLLOWING CODE SHARED BETWEEN LINUX AND MAC  ####
+
+# Protect against unset nodejs agent version as this is non-configurable via script parameters
+if [ "$NODE_AGENT_VERSION" = "config-nodejs-agent-version" ]; then
+  NODE_AGENT_VERSION="4.0.4"
+fi
 
 JAVA_PORT=8887
 NODE_PORT=8888
@@ -33,7 +37,7 @@ APPLICATION_NAME="AppDynamics Sample App ($PLATFORM)"
 SCRIPT_NAME="INSTALL_$PLATFORM.sh"
 
 # Remove fourth number from Node agent version.
-if [ "${NODE_AGENT_VERSION%?.*.*.*}" != $NODE_AGENT_VERSION ]; then
+if [ "${NODE_AGENT_VERSION%?.*.*.*}" != "$NODE_AGENT_VERSION" ]; then
   NODE_AGENT_VERSION="${NODE_AGENT_VERSION%.*}"
 fi
 
@@ -49,19 +53,7 @@ export APPD_DB_FILE="$RUN_PATH/db"
 export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
 
 about() {
-  echo "
-The following packages will be installed and configured:
-
-  - Apache Tomcat Standalone Instance
-  - AppDynamics App Agent for Java
-  - AppDynamics Database Agent
-  - AppDynamics Machine Agent
-  - AppDynamics Node Agent
-  - Node.js (with nvm, npm, Express, and Request)
-  - PostgreSQL
-
-Note: Your system must already have the following commands: curl, unzip
-"
+  cat "$SCRIPT_DIR/README"
 }
 
 usage() {
@@ -115,8 +107,9 @@ verifyUserAgreement() {
 
 startup() {
   about
+  echo ""
   if ! ${PROMPT_EACH_REQUEST} ; then
-    verifyUserAgreement "Continue to install above dependencies?"
+    verifyUserAgreement "Do you agree to install all of the required dependencies if they do not exist and continue?"
     NOPROMPT=true
   fi
   APP_STARTED=true
@@ -172,13 +165,14 @@ startProcess() {
 
 verifyDependency() {
   local INSTALL_FILE="$1"
-  if ! which "$INSTALL_FILE" >/dev/null ; then echo "$INSTALL_FILE is required before this script can be executed. Exiting."; exit 1; fi
+  if ! command -v "$INSTALL_FILE" 2>/dev/null >/dev/null ; then echo "$INSTALL_FILE is required before this script can be executed. Exiting."; exit 1; fi
   return 0
 }
 
 installDependencies() {
   verifyDependency "curl"
   verifyDependency "unzip"
+  verifyDependency "gcc"
 }
 
 LOGGED_IN=false
@@ -413,10 +407,10 @@ echo "Success!  The AppDynamics sample application is ready."
 SAMPLE_APP_URL="http://localhost:$NODE_PORT"
 if [ "$PLATFORM" = "Linux" ]; then
   echo "Opening web browser to:  $SAMPLE_APP_URL"
-  xdg-open "$SAMPLE_APP_URL"
+  xdg-open "$SAMPLE_APP_URL" >/dev/null 2>&1
 elif [ "$PLATFORM" = "Mac" ]; then
   echo "Opening web browser to:  $SAMPLE_APP_URL"
-  open "$SAMPLE_APP_URL"
+  open "$SAMPLE_APP_URL" >/dev/null 2>&1
 else
   echo "To continue, please navigate your web browser to:  $SAMPLE_APP_URL"
 fi

@@ -115,7 +115,9 @@
         return null;
       });
       $scope.looping = false;
-      $scope.recursive = 25;
+      $scope.recursive = {
+        request: 25
+      };
       activeLoop = 0;
       $scope.getActiveLoop = function() {
         if (Number(activeLoop) || activeLoop === 0) {
@@ -145,43 +147,45 @@
       $scope.loopingGet = function() {
         $scope.looping = true;
         activeLoop = 0;
-        recurses = $scope.recursive;
+        recurses = $scope.recursive.request;
         return performLoopGet();
       };
       $scope.slowRequest = false;
-      $scope.delay = 5;
+      $scope.delay = {
+        request: 5
+      };
       $scope.slowRequestGet = function() {
         $scope.slowRequest = true;
         return $http.get('/slowrequest', {
           params: {
-            delay: $scope.delay
+            delay: $scope.delay.request
           }
         }).success(function() {
-          recurses = 10;
-          performLoopGet();
           return $scope.slowRequest = false;
         }).error(function() {
           return $scope.slowRequest = false;
         });
       };
-      $scope.newName = "";
-      $scope.newStock = 0;
+      $scope.newProduct = {
+        newName: "",
+        newStock: 0
+      };
       $scope.loadingNew = false;
       $scope.addNew = function() {
-        if ($scope.newName === "" || !angular.isNumber($scope.newStock)) {
+        if ($scope.newProduct.newName === "" || !angular.isNumber($scope.newProduct.newStock)) {
           return;
         }
         $scope.loadingNew = true;
         return $http.get('/add', {
           method: 'GET',
           params: {
-            name: $scope.newName,
-            stock: $scope.newStock
+            name: $scope.newProduct.newName,
+            stock: $scope.newProduct.newStock
           }
         }).success(function(data) {
           $scope.loadingNew = false;
-          $scope.newName = "";
-          $scope.newStock = 0;
+          $scope.newProduct.newName = "";
+          $scope.newProduct.newStock = 0;
           return setupProductUpdate(data[0]);
         }).error(function() {
           alert('Unable to add new product.');
@@ -246,13 +250,17 @@
         });
       };
       $scope.isTabActive = function(tabIndex) {
-        return $scope.activeTabIndex == tabIndex.toString();
+        return $scope.activeTabIndex === tabIndex.toString();
       };
-      $scope.tabClass = function(tabIndex) {
-        return $scope.isTabActive(tabIndex) ? 'active' : '';
+      $scope.tabActive = function(tabIndex) {
+        if ($scope.isTabActive(tabIndex)) {
+          return 'active';
+        } else {
+          return '';
+        }
       };
       $scope.activateTab = function(tabIndex) {
-        $scope.activeTabIndex = tabIndex.toString();
+        return $scope.activeTabIndex = tabIndex.toString();
       };
       return null;
     }

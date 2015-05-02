@@ -80,7 +80,8 @@ app.controller 'AdminController', [
         null
 
     $scope.looping = false
-    $scope.recursive = 25
+    $scope.recursive =
+      request: 25
     activeLoop = 0
     $scope.getActiveLoop = ->
       if Number(activeLoop) or activeLoop == 0
@@ -107,40 +108,40 @@ app.controller 'AdminController', [
     $scope.loopingGet = ->
       $scope.looping = true
       activeLoop = 0
-      recurses = $scope.recursive
+      recurses = $scope.recursive.request
       performLoopGet()
 
     $scope.slowRequest = false
-    $scope.delay = 5
+    $scope.delay =
+      request: 5
     $scope.slowRequestGet = ->
       $scope.slowRequest = true
       $http.get '/slowrequest',
         params:
-          delay: $scope.delay
+          delay: $scope.delay.request
       .success ->
-        recurses = 10
-        performLoopGet()
         $scope.slowRequest = false
       .error ->
         $scope.slowRequest = false
 
-    $scope.newName = ""
-    $scope.newStock = 0
+    $scope.newProduct =
+      newName: ""
+      newStock: 0
 
     $scope.loadingNew = false
     $scope.addNew = ->
-      if $scope.newName == "" or not angular.isNumber $scope.newStock
+      if $scope.newProduct.newName == "" or not angular.isNumber $scope.newProduct.newStock
         return
       $scope.loadingNew = true
       $http.get '/add',
         method: 'GET'
         params:
-          name: $scope.newName
-          stock: $scope.newStock
+          name: $scope.newProduct.newName
+          stock: $scope.newProduct.newStock
       .success (data) ->
         $scope.loadingNew = false
-        $scope.newName = ""
-        $scope.newStock = 0
+        $scope.newProduct.newName = ""
+        $scope.newProduct.newStock = 0
         setupProductUpdate data[0]
       .error ->
         alert 'Unable to add new product.'

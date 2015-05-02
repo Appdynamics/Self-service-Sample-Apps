@@ -18,8 +18,8 @@ public class SampleAppREST {
   final String db_file = System.getenv().get("APPD_DB_FILE");
 
   private Connection getConnection() throws Exception {
-    String db = "mysql";
-    String port = "3306";
+    String db = "postgresql";
+    String port = "8889";
     String database = "";
     String user = "";
     String password = "";
@@ -33,11 +33,7 @@ public class SampleAppREST {
       bufferedReader.close();
     } catch (Exception exception) {}
 
-    if (db == "mysql") {
-      Class.forName("com.mysql.jdbc.Driver").newInstance();
-    } else {
-      Class.forName("org.postgresql.Driver").newInstance();
-    }
+    Class.forName("org.postgresql.Driver").newInstance();
     return DriverManager
       .getConnection("jdbc:" + db + "://localhost:" + port + "/" + database,
         user, password
@@ -106,7 +102,7 @@ public class SampleAppREST {
   public String getAllProducts() {
     return buildJsonFromResultSet(
       executeQuery(
-        getStatement("SELECT * FROM products")
+        getStatement("SELECT * FROM products ORDER BY id ASC")
       )
     );
   }

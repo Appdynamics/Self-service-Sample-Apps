@@ -164,6 +164,11 @@ GOTO :EOF
 GOTO :EOF
 
 :verifyPostgreSQL
+  if not exist "%systemroot%\System32\MSVCR120.dll" (
+    echo Missing dependency, read the Installation Instructions for Windows for more information, exiting.
+    CALL :Exit
+  )
+
   echo Checking PostgreSQL...
   if not exist "%RUN_PATH%/pgsql/bin/psql.exe" (
     SET POSTGRESQL_VERSION=
