@@ -58,7 +58,7 @@ about() {
 
 usage() {
   echo ""
-  printf "%s" "usage: sudo sh $SCRIPT_NAME "
+  printf "%s" "usage: sh $SCRIPT_NAME "
   cat "$SCRIPT_DIR/usage"
   exit 0
 }
@@ -70,6 +70,8 @@ removeEnvironment() {
   exit 0
 }
 
+if [ $(id -u) = 0 ]; then echo "Do not run this script as root!"; usage; fi
+if [ ! -w "$RUN_PATH" ]; then echo "The build directory is not writable, exiting."; exit 1; fi
 while getopts :c:p:u:k:s:n:j:m:hydzt: OPT; do
   case "$OPT" in
     c) CONTROLLER_ADDRESS=$OPTARG;;
