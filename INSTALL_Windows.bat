@@ -38,7 +38,7 @@ reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" 
 
 mkdir "%RUN_PATH%" 2>NUL
 
-SET ucurl="%RUN_PATH%\utils\curl.exe"
+SET ucurl="%RUN_PATH%\utils\curl-7.40.0-ssl-sspi-zlib-static-bin-w32\curl.exe"
 
 SET node="%NODE_DIR%\node.exe"
 if [%OSBIT%]==[64] SET node="%NODE_DIR%\node64.exe"
@@ -133,15 +133,15 @@ GOTO :EOF
 :performUnzip
   SET VB_ZIP_LOCATION=%~1
   SET VB_EXTRACT_LOCATION=%~2
-  mkdir "%VB_EXTRACT_LOCATION%"
+  mkdir "%VB_EXTRACT_LOCATION%" 2>NUL
   CALL cscript.exe "%SCRIPT_DIR%\vbs\unzip.vbs" >NUL
 GOTO :EOF
 
 :downloadCurl
   echo Checking curl...
-  if exist "%RUN_PATH%\utils\curl.exe" GOTO :EOF
+  if exist %ucurl% GOTO :EOF
   CALL :verifyUserAgreement "curl needs to be downloaded, do you wish to continue?"
-  SET VB_DOWNLOAD_URL="http://www.paehl.com/open_source/?download=curl_742_0_ssl.zip"
+  SET VB_DOWNLOAD_URL="http://curl.haxx.se/gknw.net/7.40.0/dist-w32/curl-7.40.0-ssl-sspi-zlib-static-bin-w32.zip"
   SET VB_ZIP_LOCATION=%RUN_PATH%\curl.zip
   echo Downloading curl...
   CALL cscript.exe "%SCRIPT_DIR%\vbs\download.vbs" >NUL
@@ -247,7 +247,11 @@ GOTO :EOF
 
 :doNodeDependencyInstall
   echo Checking %1
-  %npm% install -g %1
+  if not exist "%NODE_PATH%\%1\package.json" (
+   %npm% install -g %1
+  ) else (
+    echo Already Installed
+  )
 GOTO :EOF
 
 :installNode
@@ -261,11 +265,8 @@ GOTO :EOF
   "%NVM_DIR%\nvm.exe" install %NODE_VERSION%
 
   echo Checking Node Express...
-  CALL :doNodeDependencyInstall express@4.12.3
-  CALL :doNodeDependencyInstall request@2.55.0
-  CALL :doNodeDependencyInstall jquery@2.1.3
-  CALL :doNodeDependencyInstall bootstrap@3.3.4
-  CALL :doNodeDependencyInstall angular@1.3.14
+  CALL :doNodeDependencyInstall express 4.12.3
+  CALL :doNodeDependencyInstall request 2.55.0
 GOTO :EOF
 
 :agentInstall
@@ -315,9 +316,6 @@ GOTO :EOF
   echo var java = %JAVA_PORT%; >> "%RUN_PATH%\node\server.js"
   type "%SCRIPT_DIR%\src\server.js" >> "%RUN_PATH%\node\server.js"
   if not exist "%RUN_PATH%\node\public" xcopy /E /Y "%SCRIPT_DIR%\src\public" "%RUN_PATH%\node\public\*" >NUL
-  if not exist "%RUN_PATH%\node\public\angular" xcopy /E /Y "%NODE_PATH%\angular" "%RUN_PATH%\node\public\angular\*" >NUL
-  if not exist "%RUN_PATH%\node\public\bootstrap" xcopy /E /Y "%NODE_PATH%\bootstrap\dist" "%RUN_PATH%\node\public\bootstrap\*" >NUL
-  if not exist "%RUN_PATH%\node\public\jquery" xcopy /E /Y "%NODE_PATH%\jquery\dist" "%RUN_PATH%\node\public\jquery\*" >NUL
   echo Starting Node server (port %NODE_PORT%)...
   start "_AppDynamicsSampleApp_ Node" /MIN %node% "%RUN_PATH%\node\server.js"
 GOTO :EOF
