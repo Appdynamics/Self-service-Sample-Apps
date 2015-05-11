@@ -26,7 +26,7 @@ DB_NAME="appd_sample_db"
 DB_USER="appd_sample_user"
 DB_PORT=8889
 POSTGRES_DIR=
-NODE_VERSION="0.10.33"
+NODE_VERSION="0.10.38"
 NOPROMPT=false
 PROMPT_EACH_REQUEST=false
 TIMEOUT=150
@@ -46,8 +46,6 @@ mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
 NOW=$(date +"%s")
 RUN_LOG="$RUN_PATH/log/$NOW"
 mkdir -p "$RUN_LOG"
-export NVM_DIR="$RUN_PATH/.nvm"
-mkdir -p "$NVM_DIR"
 
 export APPD_DB_FILE="$RUN_PATH/db"
 export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
@@ -245,34 +243,35 @@ startTomcat() {
   startProcess "Tomcat" "Tomcat Server (Port $JAVA_PORT)" "sh tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "SEVERE: Failed to initialize"
 }
 
-setupNodeNvm() {
-  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+installNode() {
+  echo "Checking Node..."
+  local URL_REF="linux"; local VERSION="x86"
+  if [ "$PLATFORM" = "Mac" ]; then URL_REF="darwin"; fi
+  if [ "$ARCH" = "x86_64" ]; then VERSION="x64"; fi
+
+  NODE_DIR="$RUN_PATH/node-v$NODE_VERSION-$URL_REF-$VERSION"
+
+  if [ ! -f "$NODE_DIR/bin/node" ]; then
+    verifyUserAgreement "Node (v$NODE_VERSION) needs to be downloaded. Do you wish to continue?"
+    local DOWNLOAD_URL="http://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-$URL_REF-$VERSION.tar.gz"
+
+    curl -L -o "$RUN_PATH/nodejs.tar.gz" "$DOWNLOAD_URL"
+    gunzip -c "$RUN_PATH/nodejs.tar.gz" | tar xopf -
+    rm "$RUN_PATH/nodejs.tar.gz"
+  fi
+
+  installNodeDependency "Express" "express" "4.12.3"
+  installNodeDependency "Request" "request" "2.55.0"
+  installNodeDependency "AppDynamics Agent" "appdynamics" "$NODE_AGENT_VERSION"
 }
 
 installNodeDependency() {
   local DEPENDENCY_NAME="$1"; local DEPENDENCY_INSTALL="$2"; local DEPENDENCY_VERSION="$3"
 
-  echo "Installing $DEPENDENCY_NAME for Node.js..."
-  if ! "$NVM_DIR/v$NODE_VERSION/bin/npm" list "$DEPENDENCY_INSTALL" >/dev/null ; then
-    "$NVM_DIR/v$NODE_VERSION/bin/npm" install "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
+  echo "Checking $DEPENDENCY_NAME for Node.js..."
+  if [ ! -f "$NODE_DIR/lib/node_modules/$DEPENDENCY_INSTALL/package.json" ]; then
+    "$NODE_DIR/bin/npm" install -g "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
   else echo "Already installed."; fi
-}
-
-installNode() {
-  echo "Installing Node..."
-  setupNodeNvm
-  if ! command -v nvm 2>/dev/null >/dev/null ; then
-    verifyUserAgreement "Node needs to be downloaded. Do you wish to continue?"
-    curl https://raw.githubusercontent.com/creationix/nvm/v0.23.3/install.sh | NVM_DIR="$NVM_DIR" sh;
-
-    echo "Initializing nvm automatically..."
-    setupNodeNvm
-  fi
-  nvm install "$NODE_VERSION"
-
-  installNodeDependency "Express" "express" "4.12.3"
-  installNodeDependency "Request" "request" "2.55.0"
-  installNodeDependency "AppDynamics Agent" "appdynamics" "$NODE_AGENT_VERSION"
 }
 
 verifyPostgreSQL() {
@@ -280,7 +279,7 @@ verifyPostgreSQL() {
   POSTGRES_DIR="$RUN_PATH/pgsql"
   if [ ! -f "$POSTGRES_DIR/bin/psql" ]; then
     echo "Downloading PostgreSQL..."
-    if [ "$PLATFORM" = Linux ]; then
+    if [ "$PLATFORM" = "Linux" ]; then
       local VERSION=
       if [ "$ARCH" = "x86_64" ]; then VERSION="x64-"; fi
       local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-linux-${VERSION}binaries.tar.gz"
@@ -360,7 +359,7 @@ require(\"appdynamics\").profile({
   echo "var java = $JAVA_PORT;" >> "$RUN_PATH/node/server.js"
   cat "$SCRIPT_DIR/src/server.js" >> "$RUN_PATH/node/server.js"
   if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
-  startProcess "node" "Node server (port $NODE_PORT)" ".nvm/v$NODE_VERSION/bin/node $RUN_PATH/node/server.js" "Node Server Started" "Error:"
+  startProcess "node" "Node server (port $NODE_PORT)" "$NODE_DIR/bin/node $RUN_PATH/node/server.js" "Node Server Started" "Error:"
 }
 
 generateInitialLoad() {
