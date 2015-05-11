@@ -6,8 +6,7 @@ ACCOUNT_ACCESS_KEY="config-account-access-key"
 CONTROLLER_ADDRESS="config-controller-host"
 CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
-# NODE_AGENT_VERSION="config-nodejs-agent-version"
-NODE_AGENT_VERSION="4.0.4"
+NODE_AGENT_VERSION="config-nodejs-agent-version"
 
 # Mac-specific Config
 PLATFORM="Mac"
