@@ -248,7 +248,7 @@ GOTO :EOF
 :doNodeDependencyInstall
   echo Checking %1
   if not exist "%NODE_PATH%\%1\package.json" (
-   %npm% install -g %1
+   %npm% install -g %1@%2
   ) else (
     echo Already Installed
   )
