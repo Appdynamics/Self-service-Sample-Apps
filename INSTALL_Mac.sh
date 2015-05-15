@@ -19,6 +19,11 @@ CONTROLLER_SSL="config-controller-ssl-enabled"
 # NODE_AGENT_VERSION="config-nodejs-agent-version"
 NODE_AGENT_VERSION="4.0.4"  # Keep at 4.0.4 until 4.1 Node agent is released.
 
+# Remove fourth number from Node agent version.
+if [ "${NODE_AGENT_VERSION%?.*.*.*}" != "$NODE_AGENT_VERSION" ]; then
+  NODE_AGENT_VERSION="${NODE_AGENT_VERSION%.*}"
+fi
+
 JAVA_PORT=8887
 NODE_PORT=8888
 DB_NAME="appd_sample_db"
@@ -35,32 +40,22 @@ ARCH=$(uname -m)
 APPLICATION_NAME="AppDynamics Sample App ($PLATFORM)"
 SCRIPT_NAME="INSTALL_$PLATFORM.sh"
 
-# Remove fourth number from Node agent version.
-if [ "${NODE_AGENT_VERSION%?.*.*.*}" != "$NODE_AGENT_VERSION" ]; then
-  NODE_AGENT_VERSION="${NODE_AGENT_VERSION%.*}"
-fi
-
-RUN_PATH="$SCRIPT_DIR/build"
-mkdir -p "$RUN_PATH"; mkdir -p "$RUN_PATH/log"; cd "$RUN_PATH"
-NOW=$(date +"%s")
-RUN_LOG="$RUN_PATH/log/$NOW"
-mkdir -p "$RUN_LOG"
-
-export APPD_DB_FILE="$RUN_PATH/database"
-export APPD_TOMCAT_FILE="$RUN_PATH/tomcat"
+export APPD_DB_FILE="$SCRIPT_DIR/build/database"
+export APPD_TOMCAT_FILE="$SCRIPT_DIR/build/tomcat"
 
 
 main() {
   if [ $(id -u) = 0 ]; then echo "Do not run this script as root."; printUsageMessage; fi
-  if [ ! -w "$RUN_PATH" ]; then echo "The build directory is not writable, exiting."; exit 1; fi
 
   getOptions
-
-  trap "exit" INT TERM && trap onExitCleanup EXIT
-
   verifyCommands
   verifyJava
   promptUserDependencyInstall
+
+  cd "$SCRIPT_DIR"
+  trap "exit" INT TERM && trap onExitCleanup EXIT
+
+  makeBuildDirectories
   installPostgreSQL
   createPostgreSQLDatabase
   installTomcat
@@ -73,7 +68,6 @@ main() {
   generateInitialLoad
   printSuccessMessage
   waitForKill
-
 }
 
 getOptions() {
@@ -107,7 +101,7 @@ printUsageMessage() {
 
 removeEnvironment() {
   echo "Removing Sample Application environment..."
-  rm -rf "$RUN_PATH"
+  rm -rf "build"
   echo "Done"
   exit 0
 }
@@ -121,7 +115,7 @@ promptUser() {
     read -p "$1 (y/n) " RESPONSE
     case "$RESPONSE" in
       [Yy]* ) break;;
-      [Nn]* ) echo "Exiting."; exit;;
+      [Nn]* ) exit;;
     esac
   done
   echo ""
@@ -143,7 +137,7 @@ Follow the instructions in the cURL package to install it."
 Or download and install Xcode from the Mac App Store."
     verifyCommand "unzip" "Check that your PATH variable is set correctly."
   else
-    echo "Invalid platform setting. Exiting."
+    echo "ERROR: Invalid platform setting."
     exit 1
   fi
 }
@@ -157,15 +151,15 @@ Or:   sudo yum install $COMMAND"
 verifyCommand() {
   local COMMAND="$1"; local INSTRUCTIONS="$2"
   if ! command -v "$COMMAND" 2>/dev/null >/dev/null ; then
-    echo "$COMMAND is required before continuing."
+    echo "ERROR: $COMMAND is required before continuing."
     if $INSTRUCTIONS; then echo $INSTRUCTIONS; fi
-    echo "Exiting."; exit 1; fi
+    exit 1; fi
   return 0
 }
 
 verifyJava() {
   if [ ! -f "$JAVA_HOME/bin/java" ]; then
-    echo "Cannot find java. Please make sure JAVA_HOME variable is set properly. Exiting."
+    echo "ERROR: Cannot find java. Please make sure JAVA_HOME variable is set properly."
     exit 1;
   fi
 }
@@ -191,34 +185,44 @@ The following dependencies will be installed:
   APP_STARTED=true
 }
 
+makeBuildDirectories() {
+  mkdir -p "build"
+  if [ ! -w "build" ]; then echo "ERROR: The build directory is not writable."; exit 1; fi
+
+  mkdir -p "build/log"
+  NOW=$(date +"%s")
+  LOG_DIR="log/$NOW"
+  mkdir -p "build/$LOG_DIR"
+}
+
 installPostgreSQL() {
   echo "Installing PostgreSQL..."
-  POSTGRES_DIR="$RUN_PATH/pgsql"
+  POSTGRES_DIR="build/pgsql"
   if [ ! -f "$POSTGRES_DIR/bin/psql" ]; then
     echo "Downloading PostgreSQL..."
     if [ "$PLATFORM" = "Linux" ]; then
       local VERSION=
       if [ "$ARCH" = "x86_64" ]; then VERSION="x64-"; fi
       local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-linux-${VERSION}binaries.tar.gz"
-      curl -L -o "$RUN_PATH/postgresql.tar.gz" "$DOWNLOAD_URL"
+      curl -L -o "build/postgresql.tar.gz" "$DOWNLOAD_URL"
       echo "Unpacking PostgreSQL..."
-      gunzip -c "$RUN_PATH/postgresql.tar.gz" | tar xopf -
-      rm "$RUN_PATH/postgresql.tar.gz"
+      gunzip -c "build/postgresql.tar.gz" | tar xopf -
+      rm "build/postgresql.tar.gz"
     elif [ "$PLATFORM" = "Mac" ]; then
       local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-osx-binaries.zip"
-      curl -L -o "$RUN_PATH/postgresql.zip" "$DOWNLOAD_URL"
+      curl -L -o "build/postgresql.zip" "$DOWNLOAD_URL"
       echo "Unpacking PostgreSQL..."
-      unzip -d "$RUN_PATH/" "$RUN_PATH/postgresql.zip" >/dev/null
-      rm "$RUN_PATH/postgresql.zip"
+      unzip -d "build/" "build/postgresql.zip" >/dev/null
+      rm "build/postgresql.zip"
     else
-      echo "Invalid platform setting. Exiting."
+      echo "ERROR: Invalid platform setting."
       exit 1
     fi
   fi
 
   "$POSTGRES_DIR/bin/initdb" -D "$POSTGRES_DIR/data"
-  if ! "$POSTGRES_DIR/bin/pg_ctl" -D "$POSTGRES_DIR/data" start -l "$RUN_LOG/psql" -w -o "-p $DB_PORT" ; then
-    echo "Error with the PostgreSQL Database. Exiting."
+  if ! "$POSTGRES_DIR/bin/pg_ctl" -D "$POSTGRES_DIR/data" start -l "build/$LOG_DIR/psql" -w -o "-p $DB_PORT" ; then
+    echo "ERROR: Unable to start PostgreSQL database server."
     exit 1
   fi
 }
@@ -241,9 +245,9 @@ writeDatabaseConfigFile() {
 installTomcat() {
   echo "Setting up Tomcat..."
   echo "$JAVA_PORT" > "$APPD_TOMCAT_FILE"
-  mkdir -p "$RUN_PATH/tomcatrest/repo"
-  mkdir -p "$RUN_PATH/tomcatrest/bin"
-  cp -rf "$SCRIPT_DIR/sampleapp/"* "$RUN_PATH/tomcatrest" >/dev/null
+  mkdir -p "build/tomcatrest/repo"
+  mkdir -p "build/tomcatrest/bin"
+  cp -rf "$SCRIPT_DIR/sampleapp/"* "build/tomcatrest" >/dev/null
   downloadTomcatDependency "org/glassfish/jersey/containers/jersey-container-servlet/2.10.1/jersey-container-servlet-2.10.1.jar"
   downloadTomcatDependency "org/glassfish/jersey/containers/jersey-container-servlet-core/2.10.1/jersey-container-servlet-core-2.10.1.jar"
   downloadTomcatDependency "org/glassfish/hk2/external/javax.inject/2.3.0-b05/javax.inject-2.3.0-b05.jar"
@@ -271,22 +275,24 @@ installTomcat() {
   downloadTomcatDependency "org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar"
   downloadTomcatDependency "com/google/guava/guava/18.0/guava-18.0.jar"
   downloadTomcatDependency "org/slf4j/slf4j-simple/1.7.7/slf4j-simple-1.7.7.jar"
+  downloadTomcatDependency "org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar"
 }
 
 downloadTomcatDependency() {
   local TOMCAT_URL=$1
-  if [ -f "$RUN_PATH/tomcatrest/repo/$TOMCAT_URL" ]; then return 0; fi
+  if [ -f "build/tomcatrest/repo/$TOMCAT_URL" ]; then return 0; fi
   echo "Downloading http://repo.maven.apache.org/maven2/$TOMCAT_URL"
-  curl -q --create-dirs -L -o "$RUN_PATH/tomcatrest/repo/$TOMCAT_URL" "http://repo.maven.apache.org/maven2/$TOMCAT_URL"
+  curl -q --create-dirs -L -o "build/tomcatrest/repo/$TOMCAT_URL" "http://repo.maven.apache.org/maven2/$TOMCAT_URL"
 }
 
 startTomcat() {
-  writeControllerInfo "$RUN_PATH/AppServerAgent/conf/controller-info.xml" "JavaServer" "JavaServer01"
-  for dir in "$RUN_PATH/AppServerAgent/ver"* ; do
+  writeControllerInfo "build/AppServerAgent/conf/controller-info.xml" "JavaServer" "JavaServer01"
+  for dir in "build/AppServerAgent/ver"* ; do
     writeControllerInfo "$dir/conf/controller-info.xml" "JavaServer" "JavaServer01"
   done
-  export JAVA_OPTS="-javaagent:$RUN_PATH/AppServerAgent/javaagent.jar"
+  export JAVA_OPTS="-javaagent:AppServerAgent/javaagent.jar"
   startProcess "Tomcat" "Tomcat Server (Port $JAVA_PORT)" "sh tomcatrest/bin/SampleAppServer.sh" "INFO: Starting ProtocolHandler [\"http-bio-$JAVA_PORT\"]" "SEVERE: Failed to initialize"
+  cd "$SCRIPT_DIR"
 }
 
 writeControllerInfo() {
@@ -311,15 +317,17 @@ installNode() {
   if [ "$PLATFORM" = "Mac" ]; then URL_REF="darwin"; fi
   if [ "$ARCH" = "x86_64" ]; then VERSION="x64"; fi
 
-  NODE_DIR="$RUN_PATH/node-v$NODE_VERSION-$URL_REF-$VERSION"
+  NODE_DIR="node-v$NODE_VERSION-$URL_REF-$VERSION"
 
-  if [ ! -f "$NODE_DIR/bin/node" ]; then
+  if [ ! -f "build/$NODE_DIR/bin/node" ]; then
     promptUser "Node (v$NODE_VERSION) needs to be downloaded. Do you wish to continue?"
     local DOWNLOAD_URL="http://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-$URL_REF-$VERSION.tar.gz"
 
-    curl -L -o "$RUN_PATH/nodejs.tar.gz" "$DOWNLOAD_URL"
-    gunzip -c "$RUN_PATH/nodejs.tar.gz" | tar xopf -
-    rm "$RUN_PATH/nodejs.tar.gz"
+    cd "build"
+    curl -L -o "nodejs.tar.gz" "$DOWNLOAD_URL"
+    gunzip -c "nodejs.tar.gz" | tar xopf -
+    rm "nodejs.tar.gz"
+    cd ".."
   fi
 
   installNodeModule "Express" "express" "4.12.3"
@@ -331,13 +339,13 @@ installNodeModule() {
   local DEPENDENCY_NAME="$1"; local DEPENDENCY_INSTALL="$2"; local DEPENDENCY_VERSION="$3"
 
   echo "Installing $DEPENDENCY_NAME for Node.js..."
-  if [ ! -f "$NODE_DIR/lib/node_modules/$DEPENDENCY_INSTALL/package.json" ]; then
-    "$NODE_DIR/bin/npm" install -g "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
+  if [ ! -f "build/$NODE_DIR/lib/node_modules/$DEPENDENCY_INSTALL/package.json" ]; then
+    "build/$NODE_DIR/bin/npm" install -g "$DEPENDENCY_INSTALL@$DEPENDENCY_VERSION"
   else echo "Already installed."; fi
 }
 
 startNode() {
-  mkdir -p "$RUN_PATH/node"
+  mkdir -p "build/node"
   printf "
 require(\"appdynamics\").profile({
     controllerHostName: \"%s\",
@@ -349,13 +357,13 @@ require(\"appdynamics\").profile({
     tierName: \"NodeServer\",
     nodeName: \"NodeServer01\"
 });
-" "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$CONTROLLER_SSL" "$APPLICATION_NAME" > "$RUN_PATH/node/server.js"
-  echo "var nodePort = $NODE_PORT;" >> "$RUN_PATH/node/server.js"
-  echo "var javaPort = $JAVA_PORT;" >> "$RUN_PATH/node/server.js"
-  cat "$SCRIPT_DIR/src/server.js" >> "$RUN_PATH/node/server.js"
-  if [ ! -h "$RUN_PATH/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "$RUN_PATH/node/public"; fi
-  export NODE_PATH="$NODE_DIR/lib/node_modules"
-  startProcess "node" "Node server (port $NODE_PORT)" "$NODE_DIR/bin/node $RUN_PATH/node/server.js" "Node Server Started" "Error:"
+" "$CONTROLLER_ADDRESS" "$CONTROLLER_PORT" "$ACCOUNT_NAME" "$ACCOUNT_ACCESS_KEY" "$CONTROLLER_SSL" "$APPLICATION_NAME" > "build/node/server.js"
+  echo "var nodePort = $NODE_PORT;" >> "build/node/server.js"
+  echo "var javaPort = $JAVA_PORT;" >> "build/node/server.js"
+  cat "$SCRIPT_DIR/src/server.js" >> "build/node/server.js"
+  if [ ! -h "build/node/public" ]; then ln -s "$SCRIPT_DIR/src/public/" "build/node/public"; fi
+  export NODE_PATH="$SCRIPT_DIR/build/$NODE_DIR/lib/node_modules"
+  startProcess "node" "Node server (port $NODE_PORT)" "$NODE_DIR/bin/node node/server.js" "Node Server Started" "Error:"
 }
 
 installAgents() {
@@ -367,20 +375,20 @@ installAgents() {
 installAgent() {
   local AGENT_NAME=$1; local AGENT_DIR=$2; local AGENT_CHECK_FILE=$3; local AGENT_FILENAME=$4
   echo "Installing AppDynamics $AGENT_NAME... "
-  if [ -f "$RUN_PATH/$AGENT_DIR/$AGENT_CHECK_FILE" ]; then echo "Already installed."; return 0; fi
-  mkdir -p "$RUN_PATH/$AGENT_DIR"
+  if [ -f "build/$AGENT_DIR/$AGENT_CHECK_FILE" ]; then echo "Already installed."; return 0; fi
+  mkdir -p "build/$AGENT_DIR"
   echo "Unpacking AppDynamics $AGENT_NAME (this may take a few minutes)..."
-  unzip "$SCRIPT_DIR/agents/$AGENT_FILENAME" -d "$RUN_PATH/$AGENT_DIR" >/dev/null
+  unzip "$SCRIPT_DIR/agents/$AGENT_FILENAME" -d "build/$AGENT_DIR" >/dev/null
   echo "Finished unpacking AppDynamics $AGENT_NAME."
 }
 
 startMachineAgent() {
-  writeControllerInfo "$RUN_PATH/MachineAgent/conf/controller-info.xml"
+  writeControllerInfo "build/MachineAgent/conf/controller-info.xml"
   startProcess "machine-agent" "AppDynamics Machine Agent" "java -jar MachineAgent/machineagent.jar" "NOWAIT"
 }
 
 startDatabaseAgent() {
-  writeControllerInfo "$RUN_PATH/DatabaseAgent/conf/controller-info.xml"
+  writeControllerInfo "build/DatabaseAgent/conf/controller-info.xml"
   startProcess "database-agent" "AppDynamics Database Agent" "java -jar DatabaseAgent/db-agent.jar" "NOWAIT"
 }
 
@@ -389,12 +397,14 @@ startProcess() {
   local LOG_SUCCESS_TEXT="$4"; local LOG_FAILURE_TEXT="$5"; local NOWAIT=false
   APPD_ACTIVE_STARTUP_CHECK=
   echo "Starting $PROCESS_NAME..."
-  touch "$RUN_LOG/$LOG_KEY"
+  cd "build"
+  touch "$LOG_DIR/$LOG_KEY"
   if [ "$LOG_SUCCESS_TEXT" != "NOWAIT" ]; then
-    tail -n 1 -f "$RUN_LOG/$LOG_KEY" | grep -m 1 "$(escaper "$LOG_SUCCESS_TEXT")\|$(escaper "$LOG_FAILURE_TEXT")" | { cat; echo >> "$RUN_LOG/$LOG_KEY"; } > "$RUN_PATH/status-$LOG_KEY" &
+    tail -n 1 -f "$LOG_DIR/$LOG_KEY" | grep -m 1 "$(escaper "$LOG_SUCCESS_TEXT")\|$(escaper "$LOG_FAILURE_TEXT")" | { cat; echo >> "$LOG_DIR/$LOG_KEY"; } > "status-$LOG_KEY" &
     APPD_ACTIVE_STARTUP_CHECK=$!
   else NOWAIT=true; fi;
-  ${PROCESS_COMMAND} >> "$RUN_LOG/$LOG_KEY" 2>&1  &
+  ${PROCESS_COMMAND} >> "$LOG_DIR/$LOG_KEY" 2>&1  &
+  cd ".."
   if [ "$NOWAIT" = false ]; then
     LOOPS=0
     while [ "$LOOPS" -ne "$TIMEOUT" -a -n "$(ps -p"$APPD_ACTIVE_STARTUP_CHECK" -o pid=)" ]; do
@@ -403,12 +413,12 @@ startProcess() {
       sleep 1
     done
     echo ""
-    if [ "$(head -n 1 "$RUN_PATH/status-$LOG_KEY")" != "$LOG_SUCCESS_TEXT" -o "$LOOPS" -eq "$TIMEOUT" ]; then
-      echo "Unable to start $PROCESS_NAME. Exiting."
+    if [ "$(head -n 1 "build/status-$LOG_KEY")" != "$LOG_SUCCESS_TEXT" -o "$LOOPS" -eq "$TIMEOUT" ]; then
+      echo "ERROR: Unable to start $PROCESS_NAME."
       exit 1
     fi
     echo "$PROCESS_NAME started."
-    rm "$RUN_PATH/status-$LOG_KEY"
+    rm "build/status-$LOG_KEY"
   fi
 }
 
@@ -451,13 +461,12 @@ onExitCleanup() {
   echo ""
   if ${APP_STARTED} ; then
     echo "Killing all processes and cleaning up..."
-    "$RUN_PATH/pgsql/bin/pg_ctl" -D "$RUN_PATH/pgsql/data" stop -m i 2>/dev/null
-    rm -rf "$RUN_PATH/cookies"
-    rm -rf "$RUN_PATH/status-"*
+    "build/pgsql/bin/pg_ctl" -D "build/pgsql/data" stop -m i 2>/dev/null
+    rm -rf "build/cookies"
+    rm -rf "build/status-"*
     rm -rf "$APPD_TOMCAT_FILE"
     rm -rf "$APPD_DB_FILE"
   fi
-  cd "$SCRIPT_DIR"
   kill 0
 }
 
