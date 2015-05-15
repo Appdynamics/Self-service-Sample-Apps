@@ -5,7 +5,7 @@ var domain = require('domain').create();
 
 function setupStoreFrontCall(method, nodePath, apiRequest) {
   server.get('/' + nodePath, function (serverRequest, response) {
-    var url = 'http://localhost:' + java + '/rest/appdserver' + apiRequest;
+    var url = 'http://localhost:' + javaPort + '/rest/appdserver' + apiRequest;
     var query = {};
     for (var key in serverRequest.query) {
       if (serverRequest.query.hasOwnProperty(key)) {
@@ -64,7 +64,7 @@ server.get('/exception', function (serverRequest, response) {
   response.send("[]");
 });
 
-server.listen(node, 'localhost', function () {
+server.listen(nodePort, 'localhost', function () {
   console.log('Node Server Started');
 });
 server.on('error', function (e) {

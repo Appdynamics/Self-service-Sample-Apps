@@ -312,8 +312,8 @@ GOTO :EOF
 
 :startNode
   mkdir "%RUN_PATH%\node" 2>NUL
-  echo var node = %NODE_PORT%; > "%RUN_PATH%\node\server.js"
-  echo var java = %JAVA_PORT%; >> "%RUN_PATH%\node\server.js"
+  echo var nodePort = %NODE_PORT%; > "%RUN_PATH%\node\server.js"
+  echo var javaPort = %JAVA_PORT%; >> "%RUN_PATH%\node\server.js"
   type "%SCRIPT_DIR%\src\server.js" >> "%RUN_PATH%\node\server.js"
   if not exist "%RUN_PATH%\node\public" xcopy /E /Y "%SCRIPT_DIR%\src\public" "%RUN_PATH%\node\public\*" >NUL
   echo Starting Node server (port %NODE_PORT%)...
