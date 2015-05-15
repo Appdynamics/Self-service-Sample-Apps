@@ -21,19 +21,19 @@ mvn package
 cd "$SCRIPT_DIR"
 
 # We do not need to package java dependencies as they will be downloaded by the install script
-mv "$SCRIPT_DIR/sampleapp/repo/com/appdynamics" "$SCRIPT_DIR/sampleapp-appdynamics"
-rm -rf "$SCRIPT_DIR/sampleapp/repo"
-mkdir "$SCRIPT_DIR/sampleapp/repo"
-mkdir "$SCRIPT_DIR/sampleapp/repo/com"
-mv "$SCRIPT_DIR/sampleapp-appdynamics" "$SCRIPT_DIR/sampleapp/repo/com/appdynamics"
+mv "sampleapp/repo/com/appdynamics" "sampleapp-appdynamics"
+rm -rf "sampleapp/repo"
+mkdir "sampleapp/repo"
+mkdir "sampleapp/repo/com"
+mv "sampleapp-appdynamics" "sampleapp/repo/com/appdynamics"
 
-find "$SCRIPT_DIR/src/public" -type l | xargs rm -rf
+find "src/public" -type l | xargs rm -rf
 
 # Make sure windows line endings are correct before packaging
-unix2dos "$SCRIPT_DIR/INSTALL_Windows.bat"
-unix2dos "$SCRIPT_DIR/vbs/download.vbs"
-unix2dos "$SCRIPT_DIR/vbs/unzip.vbs"
+unix2dos "INSTALL_Windows.bat"
+unix2dos "vbs/download.vbs"
+unix2dos "vbs/unzip.vbs"
 
 # Create Zip file
-rm -rf "$SCRIPT_DIR/appdynamics-sample-app.zip"
-zip "$SCRIPT_DIR/appdynamics-sample-app.zip" -r "INSTALL_Linux.sh" "INSTALL_Mac.sh" "INSTALL_Windows.bat" README usage sampleapp src vbs
+rm -rf "appdynamics-sample-app.zip"
+zip "appdynamics-sample-app.zip" -r "INSTALL_Linux.sh" "INSTALL_Mac.sh" "INSTALL_Windows.bat" README usage sampleapp src vbs
