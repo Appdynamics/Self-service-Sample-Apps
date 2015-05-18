@@ -231,10 +231,6 @@ GOTO :EOF
   CALL :performTomcatDependencyDownload org/glassfish/jersey/core/jersey-client/2.10.1/jersey-client-2.10.1.jar
   CALL :performTomcatDependencyDownload javax/validation/validation-api/1.1.0.Final/validation-api-1.1.0.Final.jar
   CALL :performTomcatDependencyDownload javax/ws/rs/javax.ws.rs-api/2.0/javax.ws.rs-api-2.0.jar
-  CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-logging-juli/7.0.57/tomcat-embed-logging-juli-7.0.57.jar
-  CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-jasper/7.0.57/tomcat-embed-jasper-7.0.57.jar
-  CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar
-  CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar
   CALL :performTomcatDependencyDownload org/postgresql/postgresql/9.4-1200-jdbc41/postgresql-9.4-1200-jdbc41.jar
   CALL :performTomcatDependencyDownload com/github/dblock/waffle/waffle-jna/1.7/waffle-jna-1.7.jar
   CALL :performTomcatDependencyDownload net/java/dev/jna/jna/4.1.0/jna-4.1.0.jar
@@ -242,6 +238,8 @@ GOTO :EOF
   CALL :performTomcatDependencyDownload org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar
   CALL :performTomcatDependencyDownload com/google/guava/guava/18.0/guava-18.0.jar
   CALL :performTomcatDependencyDownload org/slf4j/slf4j-simple/1.7.7/slf4j-simple-1.7.7.jar
+  CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar
+  CALL :performTomcatDependencyDownload org/apache/tomcat/embed/tomcat-embed-logging-juli/7.0.57/tomcat-embed-logging-juli-7.0.57.jar
   echo Done
 GOTO :EOF
 

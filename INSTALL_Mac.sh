@@ -47,7 +47,7 @@ export APPD_TOMCAT_FILE="$SCRIPT_DIR/build/tomcat"
 main() {
   if [ $(id -u) = 0 ]; then echo "Do not run this script as root."; printUsageMessage; fi
 
-  getOptions
+  getOptions "$@"
   verifyCommands
   verifyJava
   promptUserDependencyInstall
@@ -152,7 +152,7 @@ verifyCommand() {
   local COMMAND="$1"; local INSTRUCTIONS="$2"
   if ! command -v "$COMMAND" 2>/dev/null >/dev/null ; then
     echo "ERROR: $COMMAND is required before continuing."
-    if $INSTRUCTIONS; then echo $INSTRUCTIONS; fi
+    if "$INSTRUCTIONS"; then echo "$INSTRUCTIONS"; fi
     exit 1; fi
   return 0
 }
@@ -206,7 +206,7 @@ installPostgreSQL() {
       local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-linux-${VERSION}binaries.tar.gz"
       curl -L -o "build/postgresql.tar.gz" "$DOWNLOAD_URL"
       echo "Unpacking PostgreSQL..."
-      gunzip -c "build/postgresql.tar.gz" | tar xopf -
+      gunzip -c "build/postgresql.tar.gz" | tar xopf - -C "build/"
       rm "build/postgresql.tar.gz"
     elif [ "$PLATFORM" = "Mac" ]; then
       local DOWNLOAD_URL="http://get.enterprisedb.com/postgresql/postgresql-9.4.1-3-osx-binaries.zip"
@@ -264,10 +264,6 @@ installTomcat() {
   downloadTomcatDependency "org/glassfish/jersey/core/jersey-client/2.10.1/jersey-client-2.10.1.jar"
   downloadTomcatDependency "javax/validation/validation-api/1.1.0.Final/validation-api-1.1.0.Final.jar"
   downloadTomcatDependency "javax/ws/rs/javax.ws.rs-api/2.0/javax.ws.rs-api-2.0.jar"
-  downloadTomcatDependency "org/apache/tomcat/embed/tomcat-embed-logging-juli/7.0.57/tomcat-embed-logging-juli-7.0.57.jar"
-  downloadTomcatDependency "org/apache/tomcat/embed/tomcat-embed-jasper/7.0.57/tomcat-embed-jasper-7.0.57.jar"
-  downloadTomcatDependency "org/apache/tomcat/embed/tomcat-embed-el/7.0.57/tomcat-embed-el-7.0.57.jar"
-  downloadTomcatDependency "org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar"
   downloadTomcatDependency "org/postgresql/postgresql/9.4-1200-jdbc41/postgresql-9.4-1200-jdbc41.jar"
   downloadTomcatDependency "com/github/dblock/waffle/waffle-jna/1.7/waffle-jna-1.7.jar"
   downloadTomcatDependency "net/java/dev/jna/jna/4.1.0/jna-4.1.0.jar"
@@ -275,7 +271,8 @@ installTomcat() {
   downloadTomcatDependency "org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar"
   downloadTomcatDependency "com/google/guava/guava/18.0/guava-18.0.jar"
   downloadTomcatDependency "org/slf4j/slf4j-simple/1.7.7/slf4j-simple-1.7.7.jar"
-  downloadTomcatDependency "org/eclipse/jdt/core/compiler/ecj/4.4/ecj-4.4.jar"
+  downloadTomcatDependency "org/apache/tomcat/embed/tomcat-embed-core/7.0.57/tomcat-embed-core-7.0.57.jar"
+  downloadTomcatDependency "org/apache/tomcat/embed/tomcat-embed-logging-juli/7.0.57/tomcat-embed-logging-juli-7.0.57.jar"
 }
 
 downloadTomcatDependency() {
@@ -470,4 +467,4 @@ onExitCleanup() {
   kill 0
 }
 
-main
+main "$@"

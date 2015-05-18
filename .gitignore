@@ -6,15 +6,6 @@ appdynamics-sample-app*
 build
 maven/target*
 
-sampleapp/repo/javax*
-sampleapp/repo/com/appdynamics/demo
-sampleapp/repo/com/g*
-sampleapp/repo/mysql*
-sampleapp/repo/org*
-sampleapp/repo/net*
+sampleapp
 
-src/public/bootstrap*
-src/public/jquery*
-src/public/angular*
-
-utils*
+npm-debug.log
