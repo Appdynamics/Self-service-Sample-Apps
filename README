@@ -1,0 +1,64 @@
+                AppDynamics Sample Application Installer
+
+
+About This Package
+
+    This package allows you to install and configure a sample application
+    to experience AppDynamics in action.  This installation will include:
+
+    - Apache Tomcat Standalone Instance
+    - AppDynamics App Agent for Java
+    - AppDynamics Database Agent
+    - AppDynamics Machine Agent
+    - AppDynamics Node Agent (Linux and Mac only)
+    - Node.js (with nvm, npm, Express, and Request)
+    - PostgreSQL
+
+    This sample app will be pre-configured to send activity data to your 
+    AppDynamics Controller.  Follow the instructions below to begin.
+
+
+Requirements
+
+    The sample app requires Java 7 (1.7).  If the Tomcat server does not start
+    after installation finishes, you may not have the correct version of Java.
+    Run "java -version" from the command line to check your Java version.
+
+    On Linux and Mac, these utilities are required: curl, gcc, and unzip.
+
+    On Windows, the Visual C++ Redistributable Packages for Visual Studio 2013
+    are required in order to run all the components.  You may obtain them at
+    http://www.microsoft.com/en-us/download/details.aspx?id=40784
+
+
+How to Install
+
+    Linux:
+
+        1. Open a command-line shell.
+        2. cd to this directory.
+        3. Run this command:  sh INSTALL_Linux.sh
+
+    Mac OS X:
+
+        1. Open the Terminal application.
+        2. cd to this directory.
+        3. Run this command:  sh INSTALL_Mac.sh
+
+    Windows:
+
+        Double-click the INSTALL_Windows.bat file to run.
+
+    After starting the installer, follow the prompts until installation 
+    completes and the sample app opens in your web browser.
+
+
+How to Uninstall
+
+    Everything will be installed in the `build` subdirectory of this directory.
+    To uninstall, simply delete this directory.
+
+
+More Information
+
+    To learn more about AppDynamics, visit http://www.appdynamics.com.

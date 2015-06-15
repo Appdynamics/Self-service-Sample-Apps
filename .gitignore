@@ -1,0 +1,11 @@
+.idea
+
+agents
+appdynamics-sample-app*
+
+build
+maven/target*
+
+sampleapp
+
+npm-debug.log

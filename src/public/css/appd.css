@@ -1,0 +1,75 @@
+body {
+    padding-top: 70px;
+}
+
+footer {
+    margin: 50px 0;
+}
+
+.center {
+    display: block;
+    margin: 0 auto;
+}
+
+.jumbotron {
+    background-color: #999999;
+}
+
+.caption h3 {
+    text-decoration: underline;
+}
+
+.glyphicon {
+  padding-left: 5px;
+}
+
+.row {
+  margin-top: 5px;
+}
+
+.note {
+    margin: 6px 0;
+    font-size: 12px;
+    font-style: italic;
+}
+
+.glyphicon {
+    padding-left: 0px;
+    padding-right: 3px;
+}
+
+.loading {
+    color: #eee;
+}
+
+table.products td {
+    vertical-align: middle !important;
+}
+
+.product-id {
+    text-align: right;
+    padding-right: 20px;
+}
+
+.copyright, .copyright a {
+    color: #aaa;
+}
+
+ol li img {
+    display: inline-block;
+    border: 0;
+    margin: 4px 0 10px 0;
+}
+
+input[type=number] {
+    width: 80px;
+}
+
+p {
+    margin: 6px 0 10px 0;
+}
+
+p.continue {
+    margin-top: 24px;
+    text-align: center;
+}

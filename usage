@@ -1,0 +1,16 @@
+-c <controller> -p <controller port> [-s <ssl>] [-u <account>] [-k <key>] [-n <node port>] [-j <java port>] [-m <mysql port>]
+
+Arguments:
+  -c        Hostname / IP address of the AppDynamics controller
+  -p        Port number of AppDynamics controller
+  -s        <true/false> connect to controller via SSL (defaults to false)
+  -u        Account name to connect to controller (for multi-tenant or SaaS controller)
+  -k        Account access key to connect to controller (for multi-tenant or SaaS controller)
+  -n        Port number for Node.js server (defaults to 8888)
+  -j        Port number for Tomcat server (defaults to 8887)
+  -m        Port number for database server (default: 3306 for MySQL or 5432 for PostgreSQL)
+  -y        Automatic yes to prompts
+  -z        Prompt on each install request
+  -d        Remove all installed dependencies not included with initial download and exit
+  -h        Print Help (this message) and exit
+  -t        Time (in seconds) to wait for server instances to boot (defaults to 150)
