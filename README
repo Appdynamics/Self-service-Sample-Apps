@@ -18,6 +18,19 @@ About This Package
     AppDynamics Controller.  Follow the instructions below to begin.
 
 
+Requirements
+
+    The sample app requires Java 7 (1.7).  If the Tomcat server does not start
+    after installation finishes, you may not have the correct version of Java.
+    Run "java -version" from the command line to check your Java version.
+
+    On Linux and Mac, these utilities are required: curl, gcc, and unzip.
+
+    On Windows, the Visual C++ Redistributable Packages for Visual Studio 2013
+    are required in order to run all the components.  You may obtain them at
+    http://www.microsoft.com/en-us/download/details.aspx?id=40784
+
+
 How to Install
 
     Linux:
@@ -35,10 +48,6 @@ How to Install
     Windows:
 
         Double-click the INSTALL_Windows.bat file to run.
-        Note: The Visual C++ Redistributable Packages for Visual Studio 2013:
-          http://www.microsoft.com/en-us/download/details.aspx?id=40784
-        is required in order to run all the components.  Please ensure that
-        it is installed before beginning.
 
     After starting the installer, follow the prompts until installation 
     completes and the sample app opens in your web browser.
@@ -46,7 +55,7 @@ How to Install
 
 How to Uninstall
 
-    Everything will be installed in the build subdirectory of this directory.
+    Everything will be installed in the `build` subdirectory of this directory.
     To uninstall, simply delete this directory.
 
 
