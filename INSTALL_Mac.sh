@@ -16,8 +16,7 @@ ACCOUNT_ACCESS_KEY="config-account-access-key"
 CONTROLLER_ADDRESS="config-controller-host"
 CONTROLLER_PORT="config-controller-port"
 CONTROLLER_SSL="config-controller-ssl-enabled"
-# NODE_AGENT_VERSION="config-nodejs-agent-version"
-NODE_AGENT_VERSION="4.0.4"  # Keep at 4.0.4 until 4.1 Node agent is released.
+NODE_AGENT_VERSION="config-nodejs-agent-version"
 
 # Remove fourth number from Node agent version.
 if [ "${NODE_AGENT_VERSION%?.*.*.*}" != "$NODE_AGENT_VERSION" ]; then
